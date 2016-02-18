@@ -326,7 +326,7 @@ def cli():
             potions = items['hatchingPotions']
             for egg in eggs:
                 # Used to keep count of number of eggs we need
-                need = len(kinds)
+                need = len(kinds) * 2
                 if eggs[egg] == 0:
                     continue
                 creatures = []
@@ -336,10 +336,12 @@ def cli():
                     try:
                         # we have one so don't need to hatch one
                         if pets[creature] > 0:
+                            # have a pet, one less egg needed
+                            need -= 1
                             # no mount, so we'll need an egg someday
                             if creature not in mounts:
                                 continue
-                            # have a mount and pet, one less egg needed
+                            # have a mount, one less egg needed
                             if mounts[creature]:
                                 need -= 1
                             continue
@@ -354,8 +356,8 @@ def cli():
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     user = batch(_method='post', op="hatch", params={"egg":egg, "hatchingPotion":potion})
                     refreshed = True
-                if need > eggs[egg]:
-                     continue
+                if need >= eggs[egg]:
+                    continue
                 # sell the eggs we don't need
                 while eggs[egg] > need:
                     print("Selling a %s egg" % egg)
