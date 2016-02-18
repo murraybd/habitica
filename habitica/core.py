@@ -315,7 +315,7 @@ def cli():
         # list of kinds of pets (disregarding Magic Potion ones)
         kinds = [ 'Base', 'CottonCandyBlue', 'CottonCandyPink',
                   'Golden', 'White', 'Red', 'Shade', 'Skeleton',
-                  'Desert','Zombie' ]
+                  'Desert', 'Zombie' ]
 
         while refreshed:
             refreshed = False
