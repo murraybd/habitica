@@ -182,6 +182,7 @@ def cli():
       home                   Open tasks page in default browser
       item [type]            Show item types, or specific items of given type
       feed                   Feed all food to matching pets
+      hatch                  Use potions to hatch eggs, sell unneeded eggs
 
     For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
     one or more <task-id> parameters, using either comma-separated lists or
@@ -302,11 +303,66 @@ def cli():
                         mouth = pet
 
                 if mouth:
-                    print("Feeding %s to %s" % (food, mouth))
+                    print("Feeding %s to %s" % (food, " ".join(mouth.split('-')[::-1])))
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     user = batch(_method='post', op="feed", params={"pet":mouth, "food":food})
                     refreshed = True
                     break
+
+    elif args['<command>'] == 'hatch':
+        user = hbt.user()
+        refreshed = True
+        # list of kinds of pets (disregarding Magic Potion ones)
+        kinds = [ 'Base', 'CottonCandyBlue', 'CottonCandyPink',
+                  'Golden', 'White', 'Red', 'Shade', 'Skeleton',
+                  'Desert','Zombie' ]
+
+        while refreshed:
+            refreshed = False
+            items = user.get('items', [])
+            pets = items['pets']
+            mounts = items['mounts']
+            eggs = items['eggs']
+            potions = items['hatchingPotions']
+            for egg in eggs:
+                # Used to keep count of number of eggs we need
+                need = len(kinds)
+                if eggs[egg] == 0:
+                    continue
+                creatures = []
+                for kind in kinds:
+                    creatures.append('%s-%s' % (egg, kind))
+                for creature in creatures:
+                    try:
+                        # we have one so don't need to hatch one
+                        if pets[creature] > 0:
+                            # no mount, so we'll need an egg someday
+                            if creature not in mounts:
+                                continue
+                            # have a mount and pet, one less egg needed
+                            if mounts[creature]:
+                                need -= 1
+                            continue
+                    except KeyError:
+                        pass
+                    # a pet we are missing
+                    potion = creature.split('-')[-1]
+                    # don't have the right potion
+                    if potion not in potions:
+                        continue
+                    print("Hatching a %s %s" % (potion, egg))
+                    batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+                    user = batch(_method='post', op="hatch", params={"egg":egg, "hatchingPotion":potion})
+                    refreshed = True
+                if need > eggs[egg]:
+                     continue
+                # sell the eggs we don't need
+                while eggs[egg] > need:
+                    print("Selling a %s egg" % egg)
+                    batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+                    user = batch(_method='post', op="sell", params={"type":'eggs', "key":egg})
+                    eggs[egg] -= 1
+                    refreshed = True
 
     # GET user
     elif args['<command>'] == 'status':
