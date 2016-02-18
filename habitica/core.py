@@ -310,6 +310,14 @@ def cli():
                     break
 
     elif args['<command>'] == 'hatch':
+        def hatch_refresh(user):
+            items = user.get('items', [])
+            pets = items['pets']
+            mounts = items['mounts']
+            eggs = items['eggs']
+            potions = items['hatchingPotions']
+            return (items, pets, mounts, eggs, potions)
+
         user = hbt.user()
         refreshed = True
         # list of kinds of pets (disregarding Magic Potion ones)
@@ -319,52 +327,59 @@ def cli():
 
         while refreshed:
             refreshed = False
-            items = user.get('items', [])
-            pets = items['pets']
-            mounts = items['mounts']
-            eggs = items['eggs']
-            potions = items['hatchingPotions']
+            items, pets, mounts, eggs, potions = hatch_refresh(user)
+
             for egg in eggs:
-                # Used to keep count of number of eggs we need
-                need = len(kinds) * 2
+                # Skip eggs we don't have.
                 if eggs[egg] == 0:
                     continue
+
+                # Used to keep count of number of eggs we need
+                need = 0
+
                 creatures = []
                 for kind in kinds:
                     creatures.append('%s-%s' % (egg, kind))
+
                 for creature in creatures:
-                    try:
-                        # we have one so don't need to hatch one
-                        if pets[creature] > 0:
-                            # have a pet, one less egg needed
-                            need -= 1
-                            # no mount, so we'll need an egg someday
-                            if creature not in mounts:
-                                continue
-                            # have a mount, one less egg needed
-                            if mounts[creature]:
-                                need -= 1
-                            continue
-                    except KeyError:
-                        pass
-                    # a pet we are missing
+                    # This pet is already hatched.
+                    if pets.get(creature, 0) != -1:
+                        continue
+
                     potion = creature.split('-')[-1]
-                    # don't have the right potion
+                    # Missing the potion needed for this creature.
                     if potion not in potions:
                         continue
+
                     print("Hatching a %s %s" % (potion, egg))
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     user = batch(_method='post', op="hatch", params={"egg":egg, "hatchingPotion":potion})
                     refreshed = True
-                if need >= eggs[egg]:
-                    continue
-                # sell the eggs we don't need
+                    items, pets, mounts, eggs, potions = hatch_refresh(user)
+                    if pets.get(creature, 0) == -1:
+                        raise ValueError("failed to hatch %s" % (creature))
+
+                # How many eggs do we need for the future?
+                for creature in creatures:
+                    if mounts.get(creature, 0) == 0:
+                        need += 1
+                        print("Need %s mount" % (creature))
+                    if pets.get(creature, 0) == -1:
+                        need += 1
+                        print("Need %s pet" % (creature))
+
+                print("%s: need %d of %d" % (egg, need, eggs[egg]))
+
+                # Sell unneeded eggs.
                 while eggs[egg] > need:
-                    print("Selling a %s egg" % egg)
+                    before = eggs[egg]
+                    print("Selling a %s egg (%d too many)" % (egg, eggs[egg] - need))
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     user = batch(_method='post', op="sell", params={"type":'eggs', "key":egg})
-                    eggs[egg] -= 1
                     refreshed = True
+                    items, pets, mounts, eggs, potions = hatch_refresh(user)
+                    if eggs.get(egg, 0) != before - 1:
+                        raise ValueError("failed to sell %s egg" % (egg))
 
     # GET user
     elif args['<command>'] == 'status':
