@@ -152,6 +152,14 @@ def qualitative_task_score_from_value(value):
     breakpoints = [-20, -10, -1, 1, 5, 10]
     return scores[bisect(breakpoints, value)]
 
+def get_currency(gp):
+    gp = float(gp)
+    gold = int(gp)
+    silver = int((gp - int(gp)) * 100)
+    report = '%d Gold' % (gold)
+    if silver > 0:
+        report += ', %d Silver' % (silver)
+    return report
 
 def cli():
     """Habitica command-line interface.
@@ -180,10 +188,10 @@ def cli():
       todos add <task>       Add todo with description <task>
       server                 Show status of Habitica service
       home                   Open tasks page in default browser
-      item [type]            Show item types, or specific items of given type
+      item [<type>]          Show item types, or specific items of given type
       feed                   Feed all food to matching pets
       hatch                  Use potions to hatch eggs, sell unneeded eggs
-      sell [type]            Sell all potions of type or "all"
+      sell <type> [max N]    Sell at most N potions of type (type can be "all")
 
     For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
     one or more <task-id> parameters, using either comma-separated lists or
@@ -378,6 +386,8 @@ def cli():
                 # Sell unneeded eggs.
                 sell = eggs[egg] - need
                 if sell > 0:
+                    stats = user.get('stats', [])
+                    gp = float(stats.get('gp', "0.0"))
                     before = eggs[egg]
                     print("Selling %d %s egg%s" % (sell, egg,
                                                    "" if sell == 1 else "s"))
@@ -391,7 +401,17 @@ def cli():
                     if eggs.get(egg, 0) != before - sell:
                         raise ValueError("failed to sell %s egg" % (egg))
 
+                    stats = user.get('stats', [])
+                    after = float(stats.get('gp', "0.0"))
+                    print("Earned %s" % (get_currency(after - gp)))
+
     elif args['<command>'] == 'sell':
+        sell_max = None
+        if "max" in args['<args>']:
+            arg = args['<args>'].index("max")
+            name = args['<args>'].pop(arg)
+            sell_max = int(args['<args>'].pop(arg))
+
         selling = args['<args>']
 
         if selling == ['all']:
@@ -400,21 +420,30 @@ def cli():
         ops = []
         user = hbt.user()
         items = user.get('items', [])
+        stats = user.get('stats', [])
         potions = items['hatchingPotions']
 
+        gp = float(stats.get('gp', "0.0"))
         for sell in selling:
             if sell not in kinds:
-                print("That isn't a valid kind of potion.")
+                print("\"%s\" isn't a valid kind of potion." % (sell))
             if sell not in potions:
-                print("You don't have any of those.")
+                print("You don't have any \"%s\"." % (sell))
                 continue
             if potions[sell] > 0:
+                if sell_max != None and potions[sell] > sell_max:
+                    potions[sell] = sell_max
                 print("Selling %d %s potion%s" % (potions[sell], sell,
                         "" if potions[sell] == 1 else "s"))
                 for i in range(potions[sell]):
                     ops.append({'op':"sell", 'params':{"type":'hatchingPotions', "key":sell}})
-        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-        user = batch(_method='post', op="sell", ops=ops)
+        if len(ops):
+            batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+            user = batch(_method='post', op="sell", ops=ops)
+
+        stats = user.get('stats', [])
+        after = float(stats.get('gp', "0.0"))
+        print("Earned %s" % (get_currency(after - gp)))
 
     # GET user
     elif args['<command>'] == 'status':
@@ -485,11 +514,7 @@ def cli():
         health = '%d/%d' % (stats['hp'], stats['maxHealth'])
         xp = '%d/%d' % (int(stats['exp']), stats['toNextLevel'])
         mana = '%d/%d' % (int(stats['mp']), stats['maxMP'])
-        gp = float(stats.get('gp', "0.0"))
-        gold = int(gp)
-        silver = int((gp - int(gp)) * 100)
-        gems = int(stats.get('gems', 0)) # where is this?!
-        currency = 'Gold: %d  Silver: %d  Gems: %d' % (gold, silver, gems)
+        currency = get_currency(stats.get('gp', 0))
         currentPet = items.get('currentPet', '')
         pet = '%s (%d food items)' % (currentPet, food_count)
         mount = items.get('currentMount', '')
