@@ -306,7 +306,7 @@ def cli():
                 if mouth:
                     print("Feeding %s to %s" % (food, " ".join(mouth.split('-')[::-1])))
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-                    user = batch(_method='post', op="feed", params={"pet":mouth, "food":food})
+                    user = batch(_method='post', ops=[{'op':"feed", 'params':{"pet":mouth, "food":food}}])
                     refreshed = True
                     break
 
@@ -354,7 +354,7 @@ def cli():
 
                     print("Hatching a %s %s" % (potion, egg))
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-                    user = batch(_method='post', op="hatch", params={"egg":egg, "hatchingPotion":potion})
+                    user = batch(_method='post', ops=[{'op':"hatch", 'params':{"egg":egg, "hatchingPotion":potion}}])
                     refreshed = True
                     items, pets, mounts, eggs, potions = hatch_refresh(user)
                     if pets.get(creature, 0) == -1:
@@ -376,14 +376,19 @@ def cli():
                 print("%s: need %d%s of %d" % (egg, need, needed, eggs[egg]))
 
                 # Sell unneeded eggs.
-                while eggs[egg] > need:
+                sell = eggs[egg] - need
+                if sell > 0:
                     before = eggs[egg]
-                    print("Selling a %s egg (%d too many)" % (egg, eggs[egg] - need))
+                    print("Selling %d %s egg%s" % (sell, egg,
+                                                   "" if sell == 1 else "s"))
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-                    user = batch(_method='post', op="sell", params={"type":'eggs', "key":egg})
+                    ops = []
+                    for i in range(sell):
+                        ops.append({'op':"sell", 'params':{'type':'eggs', 'key':egg}})
+                    user = batch(_method='post', ops=ops)
                     refreshed = True
                     items, pets, mounts, eggs, potions = hatch_refresh(user)
-                    if eggs.get(egg, 0) != before - 1:
+                    if eggs.get(egg, 0) != before - sell:
                         raise ValueError("failed to sell %s egg" % (egg))
 
     elif args['<command>'] == 'sell':
@@ -413,10 +418,14 @@ def cli():
                 if sell not in potions:
                     print("You don't have any of those.")
                     continue
-                while potions[sell] > 0:
-                    print("Selling a %s potion" % sell)
+                if potions[sell] > 0:
+                    print("Selling %d %s potion%s" % (potions[sell], sell,
+                            "" if options[sell] == 1 else "s"))
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-                    user = batch(_method='post', op="sell", params={"type":'hatchingPotions', "key":sell})
+                    ops = []
+                    for i in range(potions[sell]):
+                        ops.append({'op':"sell", 'params':{"type":'hatchingPotions', "key":sell}})
+                    user = batch(_method='post', op="sell", ops=ops)
                     refreshed = True
                     potions = hatch_refresh(user)
 

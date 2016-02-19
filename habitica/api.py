@@ -68,9 +68,10 @@ class Habitica(object):
 
         # actually make the request of the API
         if method in ['put', 'post']:
-            data = json.dumps(kwargs)
             if 'batch-update' in self.aspect:
-                data = '[%s]' % (data)
+                data = json.dumps(kwargs.pop('ops', []))
+            else:
+                data = json.dumps(kwargs)
             #print(data)
             res = getattr(requests, method)(uri, headers=self.headers,
                                             data=data)
