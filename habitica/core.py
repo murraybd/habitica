@@ -489,10 +489,16 @@ def cli():
         health = '%d/%d' % (stats['hp'], stats['maxHealth'])
         xp = '%d/%d' % (int(stats['exp']), stats['toNextLevel'])
         mana = '%d/%d' % (int(stats['mp']), stats['maxMP'])
+        gp = float(stats.get('gp', "0.0"))
+        gold = int(gp)
+        silver = int((gp - int(gp)) * 100)
+        gems = int(stats.get('gems', 0)) # where is this?!
+        currency = 'Gold: %d  Silver: %d  Gems: %d' % (gold, silver, gems)
         currentPet = items.get('currentPet', '')
         pet = '%s (%d food items)' % (currentPet, food_count)
         mount = items.get('currentMount', '')
-        summary_items = ('health', 'xp', 'mana', 'quest', 'pet', 'mount')
+        summary_items = ('health', 'xp', 'mana', 'currency', 'quest', 'pet',
+                         'mount')
         len_ljust = max(map(len, summary_items)) + 1
         print('-' * len(title))
         print(title)
@@ -500,6 +506,7 @@ def cli():
         print('%s %s' % ('Health:'.rjust(len_ljust, ' '), health))
         print('%s %s' % ('XP:'.rjust(len_ljust, ' '), xp))
         print('%s %s' % ('Mana:'.rjust(len_ljust, ' '), mana))
+        print('%s %s' % ('Currency:'.rjust(len_ljust, ' '), currency))
         print('%s %s' % ('Pet:'.rjust(len_ljust, ' '), pet))
         print('%s %s' % ('Mount:'.rjust(len_ljust, ' '), mount))
         print('%s %s' % ('Quest:'.rjust(len_ljust, ' '), quest))
