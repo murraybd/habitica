@@ -397,33 +397,24 @@ def cli():
         if selling == ['all']:
             selling = kinds
 
-        def hatch_refresh(user):
-            items = user.get('items', [])
-            potions = items['hatchingPotions']
-            return (potions)
-
+        ops = []
         user = hbt.user()
-        refreshed = True
+        items = user.get('items', [])
+        potions = items['hatchingPotions']
 
-        while refreshed:
-            refreshed = False
-            potions = hatch_refresh(user)
-            for sell in selling:
-                if sell not in kinds:
-                    print("That isn't a valid kind of potion.")
-                if sell not in potions:
-                    print("You don't have any of those.")
-                    continue
-                if potions[sell] > 0:
-                    print("Selling %d %s potion%s" % (potions[sell], sell,
-                            "" if options[sell] == 1 else "s"))
-                    batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-                    ops = []
-                    for i in range(potions[sell]):
-                        ops.append({'op':"sell", 'params':{"type":'hatchingPotions', "key":sell}})
-                    user = batch(_method='post', op="sell", ops=ops)
-                    refreshed = True
-                    potions = hatch_refresh(user)
+        for sell in selling:
+            if sell not in kinds:
+                print("That isn't a valid kind of potion.")
+            if sell not in potions:
+                print("You don't have any of those.")
+                continue
+            if potions[sell] > 0:
+                print("Selling %d %s potion%s" % (potions[sell], sell,
+                        "" if potions[sell] == 1 else "s"))
+                for i in range(potions[sell]):
+                    ops.append({'op':"sell", 'params':{"type":'hatchingPotions', "key":sell}})
+        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+        user = batch(_method='post', op="sell", ops=ops)
 
     # GET user
     elif args['<command>'] == 'status':
