@@ -183,6 +183,7 @@ def cli():
       item [type]            Show item types, or specific items of given type
       feed                   Feed all food to matching pets
       hatch                  Use potions to hatch eggs, sell unneeded eggs
+      sell [type]            Sell all potions of type or "all"
 
     For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
     one or more <task-id> parameters, using either comma-separated lists or
@@ -359,16 +360,20 @@ def cli():
                     if pets.get(creature, 0) == -1:
                         raise ValueError("failed to hatch %s" % (creature))
 
+                needing = []
                 # How many eggs do we need for the future?
                 for creature in creatures:
                     if mounts.get(creature, 0) == 0:
                         need += 1
-                        print("Need %s mount" % (creature))
+                        needing.append('%s [m]' % creature)
                     if pets.get(creature, 0) == -1:
                         need += 1
-                        print("Need %s pet" % (creature))
+                        needing.append('%s [p]' % creature)
 
-                print("%s: need %d of %d" % (egg, need, eggs[egg]))
+                needed = ''
+                if needing:
+                    needed = ' (%s)' % ', '.join(needing)
+                print("%s: need %d%s of %d" % (egg, need, needed, eggs[egg]))
 
                 # Sell unneeded eggs.
                 while eggs[egg] > need:
@@ -380,6 +385,40 @@ def cli():
                     items, pets, mounts, eggs, potions = hatch_refresh(user)
                     if eggs.get(egg, 0) != before - 1:
                         raise ValueError("failed to sell %s egg" % (egg))
+
+    elif args['<command>'] == 'sell':
+        # list of kinds of potions (disregarding Magic ones)
+        kinds = [ 'Base', 'CottonCandyBlue', 'CottonCandyPink',
+                  'Golden', 'White', 'Red', 'Shade', 'Skeleton',
+                  'Desert', 'Zombie' ]
+
+        selling = args['<args>']
+        if selling == ['all']:
+            selling = kinds
+
+        def hatch_refresh(user):
+            items = user.get('items', [])
+            potions = items['hatchingPotions']
+            return (potions)
+
+        user = hbt.user()
+        refreshed = True
+
+        while refreshed:
+            refreshed = False
+            potions = hatch_refresh(user)
+            for sell in selling:
+                if sell not in kinds:
+                    print("That isn't a valid kind of potion.")
+                if sell not in potions:
+                    print("You don't have any of those.")
+                    continue
+                while potions[sell] > 0:
+                    print("Selling a %s potion" % sell)
+                    batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+                    user = batch(_method='post', op="sell", params={"type":'hatchingPotions', "key":sell})
+                    refreshed = True
+                    potions = hatch_refresh(user)
 
     # GET user
     elif args['<command>'] == 'status':
