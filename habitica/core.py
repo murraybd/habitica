@@ -202,6 +202,10 @@ def cli():
     logging.debug('Command line args: {%s}' %
                   ', '.join("'%s': '%s'" % (k, v) for k, v in args.items()))
 
+    # list of kinds of pets/potions (disregarding Magic Potion ones)
+    kinds = [ 'Base', 'CottonCandyBlue', 'CottonCandyPink', 'Golden',
+              'White', 'Red', 'Shade', 'Skeleton', 'Desert', 'Zombie' ]
+
     # Set up auth
     auth = load_auth(AUTH_CONF)
 
@@ -321,10 +325,6 @@ def cli():
 
         user = hbt.user()
         refreshed = True
-        # list of kinds of pets (disregarding Magic Potion ones)
-        kinds = [ 'Base', 'CottonCandyBlue', 'CottonCandyPink',
-                  'Golden', 'White', 'Red', 'Shade', 'Skeleton',
-                  'Desert', 'Zombie' ]
 
         while refreshed:
             refreshed = False
@@ -392,12 +392,8 @@ def cli():
                         raise ValueError("failed to sell %s egg" % (egg))
 
     elif args['<command>'] == 'sell':
-        # list of kinds of potions (disregarding Magic ones)
-        kinds = [ 'Base', 'CottonCandyBlue', 'CottonCandyPink',
-                  'Golden', 'White', 'Red', 'Shade', 'Skeleton',
-                  'Desert', 'Zombie' ]
-
         selling = args['<args>']
+
         if selling == ['all']:
             selling = kinds
 
