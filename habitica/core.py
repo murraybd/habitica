@@ -343,9 +343,6 @@ def cli():
                 if eggs[egg] == 0:
                     continue
 
-                # Used to keep count of number of eggs we need
-                need = 0
-
                 creatures = []
                 for kind in kinds:
                     creatures.append('%s-%s' % (egg, kind))
@@ -368,20 +365,30 @@ def cli():
                     if pets.get(creature, 0) == -1:
                         raise ValueError("failed to hatch %s" % (creature))
 
-                needing = []
                 # How many eggs do we need for the future?
+                need_pets = []
+                need_mounts = []
                 for creature in creatures:
                     if mounts.get(creature, 0) == 0:
-                        need += 1
-                        needing.append('%s [m]' % creature)
+                        need_mounts.append(creature.split('-',1)[1])
                     if pets.get(creature, 0) == -1:
-                        need += 1
-                        needing.append('%s [p]' % creature)
+                        need_pets.append(creature.split('-',1)[1])
 
-                needed = ''
-                if needing:
-                    needed = ' (%s)' % ', '.join(needing)
-                print("%s: need %d%s of %d" % (egg, need, needed, eggs[egg]))
+                report = ""
+                if len(need_pets):
+                    report += "%d Pet%s (%s)" % (len(need_pets),
+                              "" if len(need_pets) == 1 else "s",
+                              ", ".join(need_pets))
+                if len(need_mounts):
+                    if len(report):
+                        report += ", "
+                    report += "%d Mount%s (%s)" % (len(need_mounts),
+                              "" if len(need_mounts) == 1 else "s",
+                              ", ".join(need_mounts))
+
+                need = len(need_pets) + len(need_mounts)
+                if need:
+                    print("%s: Need %d for %s" % (egg, need, report))
 
                 # Sell unneeded eggs.
                 sell = eggs[egg] - need
