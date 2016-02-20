@@ -357,7 +357,7 @@ def cli():
 
                     potion = creature.split('-')[-1]
                     # Missing the potion needed for this creature.
-                    if potion not in potions:
+                    if potion not in potions or potions[potion] < 1:
                         continue
 
                     print("Hatching a %s %s" % (potion, egg))
