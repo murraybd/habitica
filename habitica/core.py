@@ -316,10 +316,15 @@ def cli():
                         mouth = pet
 
                 if mouth:
+                    before = pets[mouth]
                     print("Feeding %s to %s" % (food, " ".join(mouth.split('-')[::-1])))
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     user = batch(_method='post', ops=[{'op':"feed", 'params':{"pet":mouth, "food":food}}])
                     refreshed = True
+                    items = user.get('items', [])
+                    pets = items['pets']
+                    if pets[mouth] == before:
+                        raise ValueError("failed to feed %s" % (mouth))
                     break
 
     elif args['<command>'] == 'hatch':
