@@ -354,7 +354,7 @@ def cli():
 
                 for creature in creatures:
                     # This pet is already hatched.
-                    if pets.get(creature, 0) != -1:
+                    if pets.get(creature, 0) > 0:
                         continue
 
                     potion = creature.split('-')[-1]
