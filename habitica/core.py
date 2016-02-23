@@ -152,11 +152,15 @@ def qualitative_task_score_from_value(value):
     breakpoints = [-20, -10, -1, 1, 5, 10]
     return scores[bisect(breakpoints, value)]
 
-def get_currency(gp):
+def get_currency(gp, balance="0.0"):
+    gem = int(float(balance) * 4)
     gp = float(gp)
     gold = int(gp)
     silver = int((gp - int(gp)) * 100)
-    report = '%d Gold' % (gold)
+    report = ''
+    if gem > 0:
+        report += '%d Gem%s, ' % (gem, "" if gem == 1 else "s")
+    report += '%d Gold' % (gold)
     if silver > 0:
         report += ', %d Silver' % (silver)
     return report
@@ -532,7 +536,7 @@ def cli():
         health = '%d/%d' % (stats['hp'], stats['maxHealth'])
         xp = '%d/%d' % (int(stats['exp']), stats['toNextLevel'])
         mana = '%d/%d' % (int(stats['mp']), stats['maxMP'])
-        currency = get_currency(stats.get('gp', 0))
+        currency = get_currency(stats.get('gp', 0), user.get('balance', "0"))
         currentPet = items.get('currentPet', '')
         pet = '%s (%d food items)' % (currentPet, food_count)
         mount = items.get('currentMount', '')
