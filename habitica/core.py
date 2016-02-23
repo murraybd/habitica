@@ -459,6 +459,10 @@ def cli():
         after = float(stats.get('gp', "0.0"))
         print("Earned %s" % (get_currency(after - gp)))
 
+    elif args['<command>'] == 'dump':
+        user = hbt.user()
+        print(json.dumps(user, indent=4, sort_keys=True))
+
     # GET user
     elif args['<command>'] == 'status':
 
