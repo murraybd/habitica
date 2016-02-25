@@ -609,6 +609,7 @@ def cli():
         stats = user.get('stats', '')
         items = user.get('items', '')
         food_count = sum(items['food'].values())
+        egg_count = sum(items['eggs'].values())
 
         # gather quest progress information (yes, janky. the API
         # doesn't make this stat particularly easy to grab...).
@@ -671,7 +672,7 @@ def cli():
         mana = '%d/%d' % (int(stats['mp']), stats['maxMP'])
         currency = get_currency(stats.get('gp', 0), user.get('balance', "0"))
         currentPet = items.get('currentPet', '')
-        pet = '%s (%d food items)' % (currentPet, food_count)
+        pet = '%s (%d food items, %d eggs)' % (currentPet, food_count, egg_count)
         mount = items.get('currentMount', '')
         summary_items = ('health', 'xp', 'mana', 'currency', 'quest', 'pet',
                          'mount')
