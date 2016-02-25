@@ -214,40 +214,43 @@ def get_currency(gp, balance="0.0"):
 def cli():
     """Habitica command-line interface.
 
-    Usage: habitica [--version] [--help]
-                    <command> [<args>...] [--difficulty=<d>]
-                    [--verbose | --debug]
+  Usage: habitica [--version] [--help]
+                  <command> [<args>...] [--difficulty=<d>]
+                  [--verbose | --debug]
 
-    Options:
-      -h --help         Show this screen
-      --version         Show version
-      --difficulty=<d>  (easy | medium | hard) [default: easy]
-      --verbose         Show some logging information
-      --debug           Some all logging information
+  Options:
+    -h --help         Show this screen
+    --version         Show version
+    --difficulty=<d>  (easy | medium | hard) [default: easy]
+    --verbose         Show some logging information
+    --debug           Some all logging information
 
-    The habitica commands are:
-      status                 Show HP, XP, GP, and more
-      habits                 List habit tasks
-      habits up <task-id>    Up (+) habit <task-id>
-      habits down <task-id>  Down (-) habit <task-id>
-      dailies                List daily tasks
-      dailies done           Mark daily <task-id> complete
-      dailies undo           Mark daily <task-id> incomplete
-      todos                  List todo tasks
-      todos done <task-id>   Mark one or more todo <task-id> completed
-      todos add <task>       Add todo with description <task>
-      server                 Show status of Habitica service
-      home                   Open tasks page in default browser
-      item [<type>]          Show item types, or specific items of given type
-      feed                   Feed all food to matching pets
-      hatch                  Use potions to hatch eggs, sell unneeded eggs
-      sell <type> [max N]    Sell at most N potions of type (type can be "all")
-      cast spell <task-id>   Cast a spell, some require a <task-id> to target
+  The habitica commands are:
+    status                     Show HP, XP, GP, and more
+    habits                     List habit tasks
+    habits up <task-id>        Up (+) habit <task-id>
+    habits down <task-id>      Down (-) habit <task-id>
+    dailies                    List daily tasks
+    dailies done               Mark daily <task-id> complete
+    dailies undo               Mark daily <task-id> incomplete
+    todos                      List todo tasks
+    todos done <task-id>       Mark one or more todo <task-id> completed
+    todos add <task>           Add todo with description <task>
+    server                     Show status of Habitica service
+    home                       Open tasks page in default browser
+    item                       Show list of item types
+    item <type>                Show all items of given <type>
+    feed                       Feed all food to matching pets
+    hatch                      Use potions to hatch eggs, sell unneeded eggs
+    sell all [<max>]           Sell all hatching potions (up to <max> many)
+    sell <type> [<max>]        Sell all <type> hatching potions (up to <max>)
+    cast                       Show list of castable spells
+    cast <spell> [<task-id>]   Cast <spell> (on <task-id>)
 
-    For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
-    one or more <task-id> parameters, using either comma-separated lists or
-    ranges or both. For example, `todos done 1,3,6-9,11`.
-    """
+  For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
+  one or more <task-id> parameters, using either comma-separated lists or
+  ranges or both. For example, `todos done 1,3,6-9,11`.
+  """
 
     # set up args
     args = docopt(cli.__doc__, version=VERSION)
@@ -533,13 +536,6 @@ def cli():
         stats = user.get('stats', '')
         uclass = stats['class']
 
-        # TODO: use some string magic?
-        spell = args['<args>'][0]
-        if len(args['<args>']) == 2:
-            task = args['<args>'][1]
-        else:
-            task = ''
-
         # class: {spell: target}
         spells = {'warrior': {'valorousPresence': 'party',
                               'defensiveStance': 'self',
@@ -561,9 +557,20 @@ def cli():
                             }
                  }
 
+        if len(args['<args>']) == 0:
+            for spell in spells[uclass]:
+                print("%s (%s)" % (spell, spells[uclass][spell]))
+            sys.exit(0)
+
+        # TODO: use some string magic?
+        spell = args['<args>'][0]
+        if len(args['<args>']) == 2:
+            task = args['<args>'][1]
+        else:
+            task = ''
+
         if spell not in spells[uclass]:
             print("That isn't a spell you know.")
-            print("Spells you know: %s." % ", ".join(spells[uclass]))
             sys.exit(1)
         target = spells[uclass][spell]
         if target == 'task' and not task:
