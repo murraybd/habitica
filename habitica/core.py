@@ -197,7 +197,7 @@ def cli():
       feed                   Feed all food to matching pets
       hatch                  Use potions to hatch eggs, sell unneeded eggs
       sell <type> [max N]    Sell at most N potions of type (type can be "all")
-      cast spell <task-id>   Cast a spell some require a <task-id> to target
+      cast spell <task-id>   Cast a spell, some require a <task-id> to target
 
     For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
     one or more <task-id> parameters, using either comma-separated lists or
@@ -505,6 +505,7 @@ def cli():
 
         if spell not in spells[uclass]:
             print("That isn't a spell you know.")
+            print("Spells you know: %s." % ", ".join(spells[uclass]))
             sys.exit(1)
         target = spells[uclass][spell]
         if target == 'task' and not task:
