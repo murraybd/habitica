@@ -770,6 +770,10 @@ def cli():
             print('added new todo \'%s\'' % ttext.encode('utf8'))
         print_task_list(todos)
 
+    else:
+        print("Unknown command '%s'" % (args['<command>']))
+        sys.exit(1)
+
 
 if __name__ == '__main__':
     cli()
