@@ -359,6 +359,7 @@ def cli():
             foods = items['food']
             pets = items['pets']
             mounts = items['mounts']
+
             for food in foods:
                 # Handle seasonal foods that encode matching pet in name.
                 if '_' in food:
@@ -402,9 +403,19 @@ def cli():
 
                 if mouth:
                     before = pets[mouth]
-                    print("Feeding %s to %s" % (food, " ".join(mouth.split('-')[::-1])))
+
+                    # 50 is "fully fed and now a mount", 5 is best food growth
+                    bites = (50 - pets[mouth]) / 5
+                    if items['food'][food] < bites:
+                        bites = items['food'][food]
+
+                    print("Feeding %d %s to %s" % (bites, food, " ".join(mouth.split('-')[::-1])))
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-                    user = batch(_method='post', ops=[{'op':"feed", 'params':{"pet":mouth, "food":food}}])
+                    ops = []
+                    for i in range(bites):
+                        ops.append({'op':"feed", 'params':{"pet":mouth,
+                                                           "food":food}})
+                    user = batch(_method='post', ops=ops)
                     refreshed = True
                     items = user.get('items', [])
                     pets = items['pets']
