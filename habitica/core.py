@@ -211,6 +211,27 @@ def get_currency(gp, balance="0.0"):
         report += ', %d Silver' % (silver)
     return report
 
+def show_delta(before, after):
+    bstats = before.get('stats', [])
+    astats = after.get('stats', [])
+
+    report = { 'exp': 'Experience: %d',
+               'hp':  'Health: %d',
+               'mp':  'Mana: %d',
+             }
+
+    for item in report:
+        value = int(astats[item] - bstats[item])
+        if value != 0:
+            print(report[item] % (value))
+
+    # Currency
+    bgp = float(bstats.get('gp', "0.0"))
+    agp = float(astats.get('gp', "0.0"))
+    gp = agp - bgp
+    if gp != 0.0:
+        print("%s" % (get_currency(gp)))
+
 def cli():
     """Habitica command-line interface.
 
@@ -457,8 +478,8 @@ def cli():
                 # Sell unneeded eggs.
                 sell = eggs[egg] - need
                 if sell > 0:
+                    before_user = user
                     stats = user.get('stats', [])
-                    gp = float(stats.get('gp', "0.0"))
                     before = eggs[egg]
                     print("Selling %d %s egg%s" % (sell, egg,
                                                    "" if sell == 1 else "s"))
@@ -472,9 +493,7 @@ def cli():
                     if eggs.get(egg, 0) != before - sell:
                         raise ValueError("failed to sell %s egg" % (egg))
 
-                    stats = user.get('stats', [])
-                    after = float(stats.get('gp', "0.0"))
-                    print("Earned %s" % (get_currency(after - gp)))
+                    show_delta(before_user, user)
 
     elif args['<command>'] == 'sell':
         sell_reserved = settings['sell-reserved']
@@ -520,12 +539,10 @@ def cli():
                 for i in range(potions[sell]):
                     ops.append({'op':"sell", 'params':{"type":'hatchingPotions', "key":sell}})
         if len(ops):
+            before_user = user
             batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
             user = batch(_method='post', op="sell", ops=ops)
-
-            stats = user.get('stats', [])
-            after = float(stats.get('gp', "0.0"))
-            print("Earned %s" % (get_currency(after - gp)))
+            show_delta(before_user, user)
 
     elif args['<command>'] == 'dump':
         user = hbt.user()
@@ -577,9 +594,11 @@ def cli():
             print("You need to provide a task id to target.")
             sys.exit(1)
 
+        before_user = user
         charclass = api.Habitica(auth=auth, resource="user", aspect="class")
-        charclass(_method='post', _id='cast', _direction=spell,
-                  targetType=target, targetId=task)
+        user = charclass(_method='post', _id='cast', _direction=spell,
+                         targetType=target, targetId=task)
+        show_delta(before_user, user)
 
     # GET user
     elif args['<command>'] == 'status':
