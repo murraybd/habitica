@@ -42,8 +42,44 @@ PRIORITY = {'easy': 1,
             'hard': 2}
 AUTH_CONF = os.path.expanduser('~') + '/.config/habitica/auth.cfg'
 CACHE_CONF = os.path.expanduser('~') + '/.config/habitica/cache.cfg'
+SETTINGS_CONF = os.path.expanduser('~') + '/.config/habitica/settings.cfg'
 
+SECTION_HABITICA = 'Habitica'
 SECTION_CACHE_QUEST = 'Quest'
+
+def load_typo_check(config, defaults, section, configfile):
+    for item in config.options(section):
+        if item not in defaults:
+            raise ValueError("Option '%s' (section '%s') in '%s' not known!"
+                             % (item, section, configfile))
+
+def load_settings(configfile):
+    """Get settings data from the SETTINGS_CONF file."""
+
+    logging.debug('Loading habitica settings data from %s' % configfile)
+
+    integers = {'sell-max': "-1",
+                'sell-reserved': "-1",
+               }
+    strings = { }
+    defaults = integers.copy()
+    defaults.update(strings)
+
+    config = configparser.SafeConfigParser(defaults)
+    config.read(configfile)
+
+    if not config.has_section(SECTION_HABITICA):
+        config.add_section(SECTION_HABITICA)
+
+    load_typo_check(config, defaults, SECTION_HABITICA, configfile)
+
+    settings = {}
+    for item in integers:
+        settings[item] = int(config.get(SECTION_HABITICA, item))
+    for item in strings:
+        settings[item] = config.get(SECTION_HABITICA, item)
+
+    return settings
 
 
 def load_auth(configfile):
@@ -62,21 +98,30 @@ def load_auth(configfile):
 
     cf.close()
 
+    # Config name to authentication name mapping
+    mapping = {'url': 'url',
+               'login': 'x-api-user',
+               'password': 'x-api-key'
+              }
+
     # Get data from config
     rv = {}
     try:
-        rv = {'url': config.get('Habitica', 'url'),
-              'x-api-user': config.get('Habitica', 'login'),
-              'x-api-key': config.get('Habitica', 'password')}
+        for item in mapping:
+            rv[mapping[item]] = config.get(SECTION_HABITICA, item)
 
     except configparser.NoSectionError:
-        logging.error("No 'Habitica' section in '%s'" % configfile)
+        logging.error("No '%s' section in '%s'" % (SECTION_HABITICA,
+                                                   configfile))
         exit(1)
 
     except configparser.NoOptionError as e:
         logging.error("Missing option in auth file '%s': %s"
                       % (configfile, e.message))
         exit(1)
+
+    # Do this after checking for the section.
+    load_typo_check(config, mapping, SECTION_HABITICA, configfile)
 
     # Return auth data as a dictionnary
     return rv
@@ -223,6 +268,9 @@ def cli():
 
     # Prepare cache
     cache = load_cache(CACHE_CONF)
+
+    # Load settings
+    settings = load_settings(SETTINGS_CONF)
 
     # instantiate api service
     hbt = api.Habitica(auth=auth)
@@ -424,7 +472,8 @@ def cli():
                     print("Earned %s" % (get_currency(after - gp)))
 
     elif args['<command>'] == 'sell':
-        sell_max = None
+        sell_reserved = settings['sell-reserved']
+        sell_max = settings['sell-max']
         if "max" in args['<args>']:
             arg = args['<args>'].index("max")
             name = args['<args>'].pop(arg)
@@ -448,9 +497,18 @@ def cli():
             if sell not in potions:
                 print("You don't have any \"%s\"." % (sell))
                 continue
+
+            # Only sell potions above "sell-reserved" setting.
+            if sell_reserved != -1:
+                if potions[sell] < sell_reserved:
+                    continue
+                potions[sell] -= sell_reserved
+            # Don't sell more than "sell-max" setting.
+            if sell_max != -1 and potions[sell] > sell_max:
+                potions[sell] = sell_max
+
+            # Sell potions!
             if potions[sell] > 0:
-                if sell_max != None and potions[sell] > sell_max:
-                    potions[sell] = sell_max
                 print("Selling %d %s potion%s" % (potions[sell], sell,
                         "" if potions[sell] == 1 else "s"))
                 for i in range(potions[sell]):
@@ -459,9 +517,9 @@ def cli():
             batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
             user = batch(_method='post', op="sell", ops=ops)
 
-        stats = user.get('stats', [])
-        after = float(stats.get('gp', "0.0"))
-        print("Earned %s" % (get_currency(after - gp)))
+            stats = user.get('stats', [])
+            after = float(stats.get('gp', "0.0"))
+            print("Earned %s" % (get_currency(after - gp)))
 
     elif args['<command>'] == 'dump':
         user = hbt.user()
