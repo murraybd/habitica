@@ -17,6 +17,7 @@ import json
 import logging
 import netrc
 import os.path
+import sys
 from time import sleep, time
 from webbrowser import open_new_tab
 
@@ -445,6 +446,7 @@ def cli():
         for sell in selling:
             if sell not in kinds:
                 print("\"%s\" isn't a valid kind of potion." % (sell))
+                sys.exit(1)
             if sell not in potions:
                 print("You don't have any \"%s\"." % (sell))
                 continue
@@ -466,6 +468,51 @@ def cli():
     elif args['<command>'] == 'dump':
         user = hbt.user()
         print(json.dumps(user, indent=4, sort_keys=True))
+
+    elif args['<command>'] == 'cast':
+        user = hbt.user()
+        stats = user.get('stats', '')
+        uclass = stats['class']
+
+        # TODO: use some string magic?
+        spell = args['<args>'][0]
+        if len(args['<args>']) == 2:
+            task = args['<args>'][1]
+        else:
+            task = ''
+
+        # class: {spell: target}
+        spells = {'warrior': {'valorousPresence': 'party',
+                              'defensiveStance': 'self',
+                              'smash': 'task',
+                              'intimidate': 'party'},
+                  'rogue': {'pickPocket': 'task',
+                            'backStab': 'task',
+                            'toolsOfTrade': 'party',
+                            'stealth': 'self'},
+                  'wizard': {'fireball': 'task',
+                             'mpheal': 'party',
+                             'earth': 'party',
+                             'frost': 'self'
+                            },
+                  'healer': {'heal': 'self',
+                             'healAll': 'party',
+                             'protectAura': 'party',
+                             'brightness': 'self'
+                            }
+                 }
+
+        if spell not in spells[uclass]:
+            print("That isn't a spell you know.")
+            sys.exit(1)
+        target = spells[uclass][spell]
+        if target == 'task' and not task:
+            print("You need to provide a task id to target.")
+            sys.exit(1)
+
+        charclass = api.Habitica(auth=auth, resource="user", aspect="class")
+        charclass(_method='post', _id='cast', _direction=spell,
+                  targetType=target, targetId=task)
 
     # GET user
     elif args['<command>'] == 'status':

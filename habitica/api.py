@@ -65,9 +65,9 @@ class Habitica(object):
             uri = '%s/%s/%s' % (self.auth['url'],
                                 API_URI_BASE,
                                 self.resource)
-
+        #print(uri)
         # actually make the request of the API
-        if method in ['put', 'post']:
+        if method in ['put', 'post'] and self.aspect != 'class':
             if 'batch-update' in self.aspect:
                 data = json.dumps(kwargs.pop('ops', []))
             else:
