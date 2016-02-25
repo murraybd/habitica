@@ -232,6 +232,21 @@ def show_delta(before, after):
     if gp != 0.0:
         print("%s" % (get_currency(gp)))
 
+
+def do_item_enumerate(user, requested):
+    items = user.get('items', [])
+    if len(requested) == 0:
+        for item in items:
+            print('%s' % (item))
+        return
+
+    for name in requested:
+        for item in items.get(name, []):
+            count = items[name][item]
+            if count:
+                print('%s: %d' % (item, count))
+
+
 def cli():
     """Habitica command-line interface.
 
@@ -263,6 +278,7 @@ def cli():
     item <type>                Show all items of given <type>
     feed                       Feed all food to matching pets
     hatch                      Use potions to hatch eggs, sell unneeded eggs
+    sell                       Show list of all potions
     sell all [<max>]           Sell all hatching potions (up to <max> many)
     sell <type> [<max>]        Sell all <type> hatching potions (up to <max>)
     cast                       Show list of castable spells
@@ -318,16 +334,7 @@ def cli():
     # GET item lists
     elif args['<command>'] == 'item':
         user = hbt.user()
-        items = user.get('items', [])
-        if len(args['<args>']):
-            name = args['<args>'][0]
-            for item in items.get(name, []):
-                count = items[name][item]
-                if count:
-                    print('%d %s' % (count, item))
-        else:
-            for item in items:
-                print('%s' % (item))
+        do_item_enumerate(user, args['<args>'])
 
     elif args['<command>'] == 'feed':
         feeding = {
@@ -503,18 +510,20 @@ def cli():
             name = args['<args>'].pop(arg)
             sell_max = int(args['<args>'].pop(arg))
 
+        user = hbt.user()
+
         selling = args['<args>']
+        if len(selling) == 0:
+            do_item_enumerate(user, ['hatchingPotions'])
+            sys.exit(0)
 
         if selling == ['all']:
             selling = kinds
 
         ops = []
-        user = hbt.user()
         items = user.get('items', [])
         stats = user.get('stats', [])
         potions = items['hatchingPotions']
-
-        gp = float(stats.get('gp', "0.0"))
         for sell in selling:
             if sell not in kinds:
                 print("\"%s\" isn't a valid kind of potion." % (sell))
