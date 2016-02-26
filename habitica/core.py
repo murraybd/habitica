@@ -453,6 +453,10 @@ def cli():
                     if pets.get(creature, 0) > 0:
                         continue
 
+                    # We ran out of eggs.
+                    if eggs[egg] == 0:
+                        continue
+
                     potion = creature.split('-')[-1]
                     # Missing the potion needed for this creature.
                     if potion not in potions or potions[potion] < 1:
@@ -465,53 +469,59 @@ def cli():
                     user = batch(_method='post', ops=[{'op':"hatch", 'params':{"egg":egg, "hatchingPotion":potion}}])
                     refreshed = True
                     items, pets, mounts, eggs, potions = hatch_refresh(user)
-                    if pets.get(creature, 0) == -1:
+                    if pets.get(creature, 0) != 5:
                         raise ValueError("failed to hatch %s" % (creature))
 
-                # How many eggs do we need for the future?
-                need_pets = []
-                need_mounts = []
-                for creature in creatures:
-                    if mounts.get(creature, 0) == 0:
-                        need_mounts.append(creature.split('-',1)[1])
-                    if pets.get(creature, 0) == -1:
-                        need_pets.append(creature.split('-',1)[1])
+        # How many eggs do we need for the future?
+        ops = []
+        for egg in eggs:
+            need_pets = []
+            need_mounts = []
 
-                report = ""
-                if len(need_pets):
-                    report += "%d Pet%s (%s)" % (len(need_pets),
-                              "" if len(need_pets) == 1 else "s",
-                              ", ".join(need_pets))
-                if len(need_mounts):
-                    if len(report):
-                        report += ", "
-                    report += "%d Mount%s (%s)" % (len(need_mounts),
-                              "" if len(need_mounts) == 1 else "s",
-                              ", ".join(need_mounts))
+            # Don't bother reporting about eggs we have none of.
+            if eggs[egg] == 0:
+                continue
 
-                need = len(need_pets) + len(need_mounts)
-                if need:
-                    print("%s: Need %d for %s" % (egg, need, report))
+            creatures = []
+            for kind in kinds:
+                creatures.append('%s-%s' % (egg, kind))
 
-                # Sell unneeded eggs.
-                sell = eggs[egg] - need
-                if sell > 0:
-                    before_user = user
-                    stats = user.get('stats', [])
-                    before = eggs[egg]
-                    print("Selling %d %s egg%s" % (sell, egg,
-                                                   "" if sell == 1 else "s"))
-                    batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-                    ops = []
-                    for i in range(sell):
-                        ops.append({'op':"sell", 'params':{'type':'eggs', 'key':egg}})
-                    user = batch(_method='post', ops=ops)
-                    refreshed = True
-                    items, pets, mounts, eggs, potions = hatch_refresh(user)
-                    if eggs.get(egg, 0) != before - sell:
-                        raise ValueError("failed to sell %s egg" % (egg))
+            for creature in creatures:
+                if mounts.get(creature, 0) == 0:
+                    need_mounts.append(creature.split('-',1)[1])
+                if pets.get(creature, 0) < 5:
+                    need_pets.append(creature.split('-',1)[1])
 
-                    show_delta(before_user, user)
+            report = ""
+            if len(need_pets):
+                report += "%d Pet%s (%s)" % (len(need_pets),
+                          "" if len(need_pets) == 1 else "s",
+                          ", ".join(need_pets))
+            if len(need_mounts):
+                if len(report):
+                    report += ", "
+                report += "%d Mount%s (%s)" % (len(need_mounts),
+                          "" if len(need_mounts) == 1 else "s",
+                          ", ".join(need_mounts))
+
+            need = len(need_pets) + len(need_mounts)
+            if need:
+                print("%s: Need %d for %s" % (egg, need, report))
+
+            # Sell unneeded eggs.
+            sell = eggs[egg] - need
+            if sell > 0:
+                before = eggs[egg]
+                print("Selling %d %s egg%s" % (sell, egg,
+                                               "" if sell == 1 else "s"))
+                for i in range(sell):
+                    ops.append({'op':"sell", 'params':{'type':'eggs', 'key':egg}})
+
+        if len(ops) > 0:
+            before_user = user
+            batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+            user = batch(_method='post', ops=ops)
+            show_delta(before_user, user)
 
     elif args['<command>'] == 'sell':
         sell_reserved = settings['sell-reserved']
