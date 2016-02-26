@@ -630,6 +630,7 @@ def cli():
         items = user.get('items', '')
         food_count = sum(items['food'].values())
         egg_count = sum(items['eggs'].values())
+        potion_count = sum(items['hatchingPotions'].values())
 
         # gather quest progress information (yes, janky. the API
         # doesn't make this stat particularly easy to grab...).
@@ -692,10 +693,12 @@ def cli():
         mana = '%d/%d' % (int(stats['mp']), stats['maxMP'])
         currency = get_currency(stats.get('gp', 0), user.get('balance', "0"))
         currentPet = items.get('currentPet', '')
-        pet = '%s (%d food items, %d eggs)' % (currentPet, food_count, egg_count)
+        pet = '%s' % (currentPet)
+        perishables = '%d portions, %d eggs, %d potions' % \
+                      (food_count, egg_count, potion_count)
         mount = items.get('currentMount', '')
-        summary_items = ('health', 'xp', 'mana', 'currency', 'quest', 'pet',
-                         'mount')
+        summary_items = ('health', 'xp', 'mana', 'currency', 'perishables',
+                         'quest', 'pet', 'mount')
         len_ljust = max(map(len, summary_items)) + 1
         print('-' * len(title))
         print(title)
@@ -704,6 +707,7 @@ def cli():
         print('%s %s' % ('XP:'.rjust(len_ljust, ' '), xp))
         print('%s %s' % ('Mana:'.rjust(len_ljust, ' '), mana))
         print('%s %s' % ('Currency:'.rjust(len_ljust, ' '), currency))
+        print('%s %s' % ('Perishables:'.rjust(len_ljust, ' '), perishables))
         print('%s %s' % ('Pet:'.rjust(len_ljust, ' '), pet))
         print('%s %s' % ('Mount:'.rjust(len_ljust, ' '), mount))
         print('%s %s' % ('Quest:'.rjust(len_ljust, ' '), quest))
