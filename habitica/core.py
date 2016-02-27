@@ -704,8 +704,10 @@ def cli():
         currency = get_currency(stats.get('gp', 0), user.get('balance', "0"))
         currentPet = items.get('currentPet', '')
         pet = '%s' % (currentPet)
-        perishables = '%d servings, %d eggs, %d potions' % \
-                      (food_count, egg_count, potion_count)
+        perishables = '%d serving%s, %d egg%s, %d potion%s' % \
+                      (food_count, "" if food_count == 1 else "s",
+                       egg_count, "" if egg_count == 1 else "s",
+                       potion_count,  "" if potion_count == 1 else "s")
         mount = items.get('currentMount', '')
         member_health = ', '.join(['%s: %d' % (i['profile']['name'], i['stats']['hp'])
                                    for i in party['members']
