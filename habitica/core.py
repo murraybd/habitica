@@ -704,11 +704,14 @@ def cli():
         currency = get_currency(stats.get('gp', 0), user.get('balance', "0"))
         currentPet = items.get('currentPet', '')
         pet = '%s' % (currentPet)
-        perishables = '%d portions, %d eggs, %d potions' % \
+        perishables = '%d servings, %d eggs, %d potions' % \
                       (food_count, egg_count, potion_count)
         mount = items.get('currentMount', '')
+        member_health = ', '.join(['%s: %d' % (i['profile']['name'], i['stats']['hp'])
+                                   for i in party['members']
+                                   if i['profile']['name'] != user['profile']['name']])
         summary_items = ('health', 'xp', 'mana', 'currency', 'perishables',
-                         'quest', 'pet', 'mount')
+                         'quest', 'pet', 'mount', 'party health')
         len_ljust = max(map(len, summary_items)) + 1
         print('-' * len(title))
         print(title)
@@ -721,6 +724,7 @@ def cli():
         print('%s %s' % ('Pet:'.rjust(len_ljust, ' '), pet))
         print('%s %s' % ('Mount:'.rjust(len_ljust, ' '), mount))
         print('%s %s' % ('Quest:'.rjust(len_ljust, ' '), quest))
+        print('%s %s' % ('Party Health:'.rjust(len_ljust, ' '), member_health))
 
     # GET/POST habits
     elif args['<command>'] == 'habits':
