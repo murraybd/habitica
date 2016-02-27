@@ -83,4 +83,5 @@ class Habitica(object):
         if res.status_code == requests.codes.ok:
             return res.json()
         else:
+            print(res.url)
             res.raise_for_status()

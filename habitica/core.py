@@ -598,7 +598,7 @@ def cli():
                              'frost': 'self'
                             },
                   'healer': {'heal': 'self',
-                             'healAll': 'party',
+                             'heallAll': 'party',
                              'protectAura': 'party',
                              'brightness': 'self'
                             }
