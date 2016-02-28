@@ -215,15 +215,18 @@ def show_delta(before, after):
     bstats = before.get('stats', [])
     astats = after.get('stats', [])
 
-    report = { 'exp': 'Experience: %d',
-               'hp':  'Health: %d',
-               'mp':  'Mana: %d',
+    # XXX: maxMP doesn't exist in some stats results?!
+    report = { 'exp': {'title':'Experience', 'max':'maxHealth'},
+               'hp':  {'title':'Health', 'max':'toNextLevel'},
+               'mp':  {'title':'Mana', 'max':'maxMP'},
              }
 
     for item in report:
-        value = int(astats[item] - bstats[item])
-        if value != 0:
-            print(report[item] % (value))
+        delta = int(astats[item] - bstats[item])
+        if delta != 0:
+            print('%s: %d (%d/%d)' % (report[item]['title'],
+                                      delta, int(astats[item]),
+                                      int(astats.get(report[item]['max'], "0"))))
 
     # Currency
     bgp = float(bstats.get('gp', "0.0"))
