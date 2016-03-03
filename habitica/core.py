@@ -286,6 +286,7 @@ def cli():
     sell <type> [<max>]        Sell all <type> hatching potions (up to <max>)
     cast                       Show list of castable spells
     cast <spell> [<task-id>]   Cast <spell> (on <task-id>)
+    gems                       Buy gems until you can't
 
   For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
   one or more <task-id> parameters, using either comma-separated lists or
@@ -631,6 +632,28 @@ def cli():
         charclass = api.Habitica(auth=auth, resource="user", aspect="class")
         user = charclass(_method='post', _id='cast', _direction=spell,
                          targetType=target, targetId=task)
+        show_delta(before_user, user)
+
+    elif args['<command>'] == 'gems':
+        user = hbt.user()
+        before_user = user
+        gem_buy_limit = 45
+        bought = 0
+        # N.B. I bought all my gems so can't test more until next month
+        while bought < gem_buy_limit:
+            user = hbt.user()
+            gems_bought = user['purchased']['plan']['gemsBought']
+            if bought == 0:
+                bought += int(gems_bought)
+            elif bought != gems_bought:
+                print("Something is awry!")
+                sys.exit(1)
+            # https://habitica.com/api/v2/user/inventory/purchase/gems/gem
+            charclass = api.Habitica(auth=auth, resource="user", aspect="inventory")
+            user = charclass(_method='post', _id='purchase',
+                             _direction="gems/gem")
+            bought += 1
+
         show_delta(before_user, user)
 
     # GET user

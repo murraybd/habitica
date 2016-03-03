@@ -67,7 +67,8 @@ class Habitica(object):
                                 self.resource)
         #print(uri)
         # actually make the request of the API
-        if method in ['put', 'post'] and self.aspect != 'class':
+        if method in ['put', 'post'] and self.aspect \
+                not in ['class', 'inventory']:
             if 'batch-update' in self.aspect:
                 data = json.dumps(kwargs.pop('ops', []))
             else:
@@ -76,6 +77,7 @@ class Habitica(object):
             res = getattr(requests, method)(uri, headers=self.headers,
                                             data=data)
         else:
+            # from ipdb import set_trace; set_trace()
             res = getattr(requests, method)(uri, headers=self.headers,
                                             params=kwargs)
 
