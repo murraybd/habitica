@@ -248,7 +248,7 @@ def show_delta(before, after):
     amounts = aitems['mounts']
     bmounts = bitems['mounts']
     for mount in amounts:
-        if bmounts[mount] != amounts[mount] and amounts[mount] > 0:
+        if bmounts.get(mount, '') != amounts[mount] and amounts[mount] > 0:
             print("Grew %s" % (mount))
 
 
