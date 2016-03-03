@@ -214,6 +214,8 @@ def get_currency(gp, balance="0.0"):
 def show_delta(before, after):
     bstats = before.get('stats', [])
     astats = after.get('stats', [])
+    bitems = before.get('items', [])
+    aitems = after.get('items', [])
 
     # XXX: maxMP doesn't exist in some stats results?!
     report = { 'exp': {'title':'Experience', 'max':'maxHealth'},
@@ -234,6 +236,20 @@ def show_delta(before, after):
     gp = agp - bgp
     if gp != 0.0:
         print("%s" % (get_currency(gp)))
+
+    # Pets
+    apets = aitems['pets']
+    bpets = bitems['pets']
+    for pet in apets:
+        if bpets[pet] <= 0 and apets[pet] > 0:
+            print("Hatched %s" % (pet))
+
+    # Mounts
+    amounts = bitems['mounts']
+    bmounts = aitems['mounts']
+    for mount in amounts:
+        if bmounts[mount] != amounts[mount] and amounts[mount] > 0:
+            print("Grew %s" % (mount))
 
 
 def do_item_enumerate(user, requested):
@@ -423,12 +439,14 @@ def cli():
                         bites = items['food'][food]
 
                     print("Feeding %d %s to %s" % (bites, food, " ".join(mouth.split('-')[::-1])))
+                    before_user = user
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     ops = []
                     for i in range(bites):
                         ops.append({'op':"feed", 'params':{"pet":mouth,
                                                            "food":food}})
                     user = batch(_method='post', ops=ops)
+                    show_delta(before_user, user)
                     refreshed = True
                     items = user.get('items', [])
                     pets = items['pets']
@@ -478,8 +496,10 @@ def cli():
                         continue
 
                     print("Hatching a %s %s" % (potion, egg))
+                    before_user = user
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     user = batch(_method='post', ops=[{'op':"hatch", 'params':{"egg":egg, "hatchingPotion":potion}}])
+                    show_delta(before_user, user)
                     refreshed = True
                     items, pets, mounts, eggs, potions = hatch_refresh(user)
                     if pets.get(creature, 0) != 5:
