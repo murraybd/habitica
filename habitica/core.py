@@ -245,8 +245,8 @@ def show_delta(before, after):
             print("Hatched %s" % (pet))
 
     # Mounts
-    amounts = bitems['mounts']
-    bmounts = aitems['mounts']
+    amounts = aitems['mounts']
+    bmounts = bitems['mounts']
     for mount in amounts:
         if bmounts[mount] != amounts[mount] and amounts[mount] > 0:
             print("Grew %s" % (mount))
