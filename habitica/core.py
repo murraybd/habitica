@@ -354,6 +354,9 @@ def cli():
                     'Potatoe':          'Desert',
                     'RottenMeat':       'Zombie',
                   }
+        basic = [ 'BearCub', 'Cactus', 'Dragon', 'FlyingPig',
+                  'Fox', 'LionCub', 'PandaCub', 'TigerCub', 'Wolf' ]
+
         user = hbt.user()
         refreshed = True
 
@@ -401,9 +404,15 @@ def cli():
                         #print("Not a match for %s: %s" % (food, pet))
                         continue
 
+                    # Feed the pet that is closest to becoming a mount.
                     if fed > best:
                         best = fed
                         mouth = pet
+                    elif fed == best:
+                        # In the case of a tie, prefer feeding basic pets
+                        # to get Pet achievement.
+                        if pet in basic:
+                            mouth = pet
 
                 if mouth:
                     before = pets[mouth]
