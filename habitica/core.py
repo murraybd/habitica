@@ -724,7 +724,7 @@ def cli():
         batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
         ops = [{'op':"equip", 'params':{"type": "mount", "key": chosen}}]
         user = batch(_method='post', ops=ops)
-        print("You are now walking with a %s" % chosen)
+        print("You are now riding a %s" % chosen)
 
     # GET user
     elif args['<command>'] == 'status':
