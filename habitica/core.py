@@ -17,6 +17,7 @@ import json
 import logging
 import netrc
 import os.path
+import random
 import sys
 from time import sleep, time
 from webbrowser import open_new_tab
@@ -303,6 +304,8 @@ def cli():
     cast                       Show list of castable spells
     cast <spell> [<task-id>]   Cast <spell> (on <task-id>)
     gems                       Buy gems until you can't
+    walk                       Walk (equip) a random pet
+    ride                       Ride a random mount
 
   For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
   one or more <task-id> parameters, using either comma-separated lists or
@@ -684,6 +687,44 @@ def cli():
             bought += 1
 
         show_delta(before_user, user)
+
+    elif args['<command>'] == 'walk':
+        user = hbt.user()
+        items = user.get('items', [])
+        walking = items.get('currentPet', '')
+        pets = items['pets']
+        if walking:
+            pets.pop(walking)
+
+        if len(pets) == 0:
+            print("You don't have any pets!")
+            sys.exit(1)
+
+        choice = random.randrange(0, len(pets)-1)
+        chosen = pets.keys()[choice]
+        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+        ops = [{'op':"equip", 'params':{"type": "pet", "key": chosen}}]
+        user = batch(_method='post', ops=ops)
+        print("You are now walking with a %s" % chosen)
+
+    elif args['<command>'] == 'ride':
+        user = hbt.user()
+        items = user.get('items', [])
+        riding = items.get('currentMount', '')
+        mounts = items['mounts']
+        if riding:
+            mounts.pop(riding)
+
+        if len(mounts) == 0:
+            print("You don't have any mounts!")
+            sys.exit(1)
+
+        choice = random.randrange(0, len(mounts)-1)
+        chosen = mounts.keys()[choice]
+        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+        ops = [{'op':"equip", 'params':{"type": "mount", "key": chosen}}]
+        user = batch(_method='post', ops=ops)
+        print("You are now walking with a %s" % chosen)
 
     # GET user
     elif args['<command>'] == 'status':
