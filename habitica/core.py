@@ -250,7 +250,7 @@ def show_delta(before, after):
     bmounts = bitems['mounts']
     for mount in amounts:
         if bmounts.get(mount, '') != amounts[mount] and amounts[mount] > 0:
-            print("Grew %s" % (mount))
+            print("Metamorphosed a %s" % (mount))
 
 
 def do_item_enumerate(user, requested):
@@ -436,8 +436,11 @@ def cli():
                 if mouth:
                     before = pets[mouth]
 
+                    # if the less than ideal food is fed to a pet it's satiety
+                    # increases by 1 not 5, so find the multiple of five.
+                    satiety = int(5 * round(pets[mouth]/5))
                     # 50 is "fully fed and now a mount", 5 is best food growth
-                    bites = (50 - pets[mouth]) / 5
+                    bites = (50 - satiety) / 5
                     if items['food'][food] < bites:
                         bites = items['food'][food]
 
