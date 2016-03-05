@@ -252,6 +252,13 @@ def show_delta(before, after):
         if bmounts.get(mount, '') != amounts[mount] and amounts[mount] > 0:
             print("Metamorphosed a %s" % (mount))
 
+    # Equipment
+    bequip = bitems['gear']['equipped']
+    aequip = aitems['gear']['equipped']
+    for location, item in aequip.iteritems():
+        if bequip.get(location, '') != item:
+            print("%s now has %s" % (location, item))
+
 
 def do_item_enumerate(user, requested):
     items = user.get('items', [])
@@ -306,6 +313,7 @@ def cli():
     gems                       Buy gems until you can't
     walk                       Walk (equip) a random pet
     ride                       Ride a random mount
+    equip <gear>               Equip a piece of gear
 
   For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
   one or more <task-id> parameters, using either comma-separated lists or
@@ -728,6 +736,21 @@ def cli():
         ops = [{'op':"equip", 'params':{"type": "mount", "key": chosen}}]
         user = batch(_method='post', ops=ops)
         print("You are now riding a %s" % chosen)
+
+    elif args['<command>'] == 'equip':
+        equipping = args['<args>']
+        user = hbt.user()
+        before_user = user
+        items = user.get('items', [])
+        equipped = items['gear']['equipped']
+
+        ops = []
+        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+        for equipment in equipping:
+            ops.append({'op':"equip", 'params':{"type": "equipped", "key": equipment}})
+        user = batch(_method='post', ops=ops)
+        show_delta(before_user, user)
+
 
     # GET user
     elif args['<command>'] == 'status':
