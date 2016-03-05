@@ -314,6 +314,8 @@ def cli():
     walk                       Walk (equip) a random pet
     ride                       Ride a random mount
     equip <gear>               Equip a piece of gear
+    sleep                      Rest in the inn
+    arise                      Check out of the inn
 
   For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
   one or more <task-id> parameters, using either comma-separated lists or
@@ -751,6 +753,20 @@ def cli():
         user = batch(_method='post', ops=ops)
         show_delta(before_user, user)
 
+    elif args['<command>'] == 'sleep' or args['<command>'] == 'arise':
+        user = hbt.user()
+        intent = args['<command>']
+        sleeping = user['preferences']['sleep']
+        if intent == 'sleep' and sleeping:
+            print("You are already resting.")
+            sys.exit(1)
+        if not sleeping and intent == 'arise':
+            print("You are already checked out.")
+            sys.exit(1)
+
+        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+        ops = [{'op':"sleep"}]
+        user = batch(_method='post', ops=ops)
 
     # GET user
     elif args['<command>'] == 'status':
