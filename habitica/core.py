@@ -242,7 +242,7 @@ def show_delta(before, after):
     apets = aitems['pets']
     bpets = bitems['pets']
     for pet in apets:
-        if bpets[pet] <= 0 and apets[pet] > 0:
+        if bpets.get(pet, 0) <= 0 and apets[pet] > 0:
             print("Hatched %s" % (pet))
 
     # Mounts
