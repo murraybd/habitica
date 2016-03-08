@@ -443,6 +443,9 @@ def cli():
                         if pet in basic:
                             mouth = pet
 
+                if not mouth:
+                    print("Nobody wants to eat a %s" % food)
+
                 if mouth:
                     before = pets[mouth]
 
