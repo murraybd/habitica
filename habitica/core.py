@@ -212,13 +212,12 @@ def get_currency(gp, balance="0.0"):
         report += ', %d Silver' % (silver)
     return report
 
-def show_delta(before, after):
+def show_delta(hbt, before, after):
     bstats = before.get('stats', [])
     astats = after.get('stats', [])
     bitems = before.get('items', [])
     aitems = after.get('items', [])
 
-    # XXX: maxMP doesn't exist in some stats results?!
     report = { 'exp': {'title':'Experience', 'max':'maxHealth'},
                'hp':  {'title':'Health', 'max':'toNextLevel'},
                'mp':  {'title':'Mana', 'max':'maxMP'},
@@ -227,6 +226,13 @@ def show_delta(before, after):
     for item in report:
         delta = int(astats[item] - bstats[item])
         if delta != 0:
+            # XXX: This is a hack to refresh the current stats to fine maxes,
+            # which are regularly missing for some reason.
+            if astats.get(report[item]['max'], None) == None:
+                refresh = hbt.user()
+                rstats = refresh.get('stats', [])
+                for fixup in report:
+                    astats[report[fixup]['max']] = rstats[report[fixup]['max']]
             print('%s: %d (%d/%d)' % (report[item]['title'],
                                       delta, int(astats[item]),
                                       int(astats.get(report[item]['max'], "0"))))
@@ -471,7 +477,7 @@ def cli():
                         ops.append({'op':"feed", 'params':{"pet":mouth,
                                                            "food":food}})
                     user = batch(_method='post', ops=ops)
-                    show_delta(before_user, user)
+                    show_delta(hbt, before_user, user)
                     refreshed = True
                     items = user.get('items', [])
                     pets = items['pets']
@@ -524,7 +530,7 @@ def cli():
                     before_user = user
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     user = batch(_method='post', ops=[{'op':"hatch", 'params':{"egg":egg, "hatchingPotion":potion}}])
-                    show_delta(before_user, user)
+                    show_delta(hbt, before_user, user)
                     refreshed = True
                     items, pets, mounts, eggs, potions = hatch_refresh(user)
                     if pets.get(creature, 0) != 5:
@@ -579,7 +585,7 @@ def cli():
             before_user = user
             batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
             user = batch(_method='post', ops=ops)
-            show_delta(before_user, user)
+            show_delta(hbt, before_user, user)
 
     elif args['<command>'] == 'sell':
         sell_reserved = settings['sell-reserved']
@@ -630,7 +636,7 @@ def cli():
             before_user = user
             batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
             user = batch(_method='post', op="sell", ops=ops)
-            show_delta(before_user, user)
+            show_delta(hbt, before_user, user)
 
     elif args['<command>'] == 'dump':
         user = hbt.user()
@@ -686,7 +692,7 @@ def cli():
         charclass = api.Habitica(auth=auth, resource="user", aspect="class")
         user = charclass(_method='post', _id='cast', _direction=spell,
                          targetType=target, targetId=task)
-        show_delta(before_user, user)
+        show_delta(hbt, before_user, user)
 
     elif args['<command>'] == 'gems':
         user = hbt.user()
@@ -708,7 +714,7 @@ def cli():
                              _direction="gems/gem")
             bought += 1
 
-        show_delta(before_user, user)
+        show_delta(hbt, before_user, user)
 
     elif args['<command>'] == 'walk':
         user = hbt.user()
@@ -760,7 +766,7 @@ def cli():
         for equipment in equipping:
             ops.append({'op':"equip", 'params':{"type": "equipped", "key": equipment}})
         user = batch(_method='post', ops=ops)
-        show_delta(before_user, user)
+        show_delta(hbt, before_user, user)
 
     elif args['<command>'] == 'sleep' or args['<command>'] == 'arise':
         user = hbt.user()
