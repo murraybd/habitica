@@ -385,6 +385,10 @@ def cli():
                   }
         basic = [ 'BearCub', 'Cactus', 'Dragon', 'FlyingPig',
                   'Fox', 'LionCub', 'PandaCub', 'TigerCub', 'Wolf' ]
+        rare = [ 'Wolf-Veteran', 'Wolf-Cerberus', 'Dragon-Hydra',
+                 'Turkey-Base', 'BearCub-Polar', 'MantisShrimp-Base',
+                 'JackOLantern-Base', 'Mammoth-Base', 'Tiger-Veteran',
+                 'Phoenix-Base', 'Turkey-Gilded' ]
 
         user = hbt.user()
         refreshed = True
@@ -425,6 +429,8 @@ def cli():
                         #print("Unhatched: %s" % (pet))
                         continue
                     # Unfeedable pet.
+                    if pet in rare:
+                        continue
                     if items['mounts'].get(pet, 0) == 1 and fed == 5:
                         #print("Has mount: %s" % (pet))
                         continue
