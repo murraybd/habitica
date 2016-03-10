@@ -805,6 +805,9 @@ def cli():
                 party.get('quest').get('active')):
 
             quest_key = party['quest']['key']
+            # wtf‽
+            # party['quest']['progress'] != user['party']['quest']['progress']
+            quest_damage = user['party']['quest']['progress']['up']
 
             if cache.get(SECTION_CACHE_QUEST, 'quest_key') != quest_key:
                 # we're on a new quest, update quest key
@@ -844,10 +847,11 @@ def cli():
             else:
                 quest_progress = party['quest']['progress']['hp']
 
-            quest = '%s/%s "%s"' % (
+            quest = '"%s" %s/%s (-%d)' % (
+                    cache.get(SECTION_CACHE_QUEST, 'quest_title'),
                     str(int(quest_progress)),
                     cache.get(SECTION_CACHE_QUEST, 'quest_max'),
-                    cache.get(SECTION_CACHE_QUEST, 'quest_title'))
+                    quest_damage)
 
         # prepare and print status strings
         title = 'Level %d %s' % (stats['lvl'], stats['class'].capitalize())
