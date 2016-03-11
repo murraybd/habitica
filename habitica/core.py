@@ -229,7 +229,9 @@ def show_delta(before, after):
         if delta != 0:
             print('%s: %d (%d/%d)' % (report[item]['title'],
                                       delta, int(astats[item]),
-                                      int(astats.get(report[item]['max'], "0"))))
+                                      int(astats.get(report[item]['max'],
+                                          bstats.get(report[item]['max'])))
+                                     ))
 
     # Currency
     bgp = float(bstats.get('gp', "0.0"))
