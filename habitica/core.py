@@ -229,15 +229,18 @@ def show_delta(hbt, before, after):
             # XXX: This is a hack to refresh the current stats to fine maxes,
             # which are regularly missing for some reason.
             if astats.get(report[item]['max'], None) == None:
-                refresh = hbt.user()
-                rstats = refresh.get('stats', [])
-                for fixup in report:
-                    astats[report[fixup]['max']] = rstats[report[fixup]['max']]
+                # If max exists in "before" stats, use it instead.
+                if bstats.get(report[item]['max'], None) != None:
+                    astats[report[item]['max']] = bstats[report[item]['max']]
+                else:
+                    # Perform full refresh and update all report items.
+                    refresh = hbt.user()
+                    rstats = refresh.get('stats', [])
+                    for fixup in report:
+                        astats[report[fixup]['max']] = rstats[report[fixup]['max']]
             print('%s: %d (%d/%d)' % (report[item]['title'],
                                       delta, int(astats[item]),
-                                      int(astats.get(report[item]['max'],
-                                          bstats.get(report[item]['max'])))
-                                     ))
+                                      int(astats.get(report[item]['max'], "0"))))
 
     # Currency
     bgp = float(bstats.get('gp', "0.0"))
