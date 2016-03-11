@@ -235,7 +235,9 @@ def show_delta(hbt, before, after):
                     astats[report[fixup]['max']] = rstats[report[fixup]['max']]
             print('%s: %d (%d/%d)' % (report[item]['title'],
                                       delta, int(astats[item]),
-                                      int(astats.get(report[item]['max'], "0"))))
+                                      int(astats.get(report[item]['max'],
+                                          bstats.get(report[item]['max'])))
+                                     ))
 
     # Currency
     bgp = float(bstats.get('gp', "0.0"))
