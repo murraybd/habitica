@@ -181,6 +181,11 @@ def get_task_ids(tids):
     return [e - 1 for e in set(task_ids)]
 
 
+def nice_animal(animal):
+    prettied = " ".join(animal.split('-')[::-1])
+    return prettied
+
+
 def updated_task_list(tasks, tids):
     for tid in sorted(tids, reverse=True):
         del(tasks[tid])
@@ -254,14 +259,14 @@ def show_delta(hbt, before, after):
     bpets = bitems['pets']
     for pet in apets:
         if bpets.get(pet, 0) <= 0 and apets[pet] > 0:
-            print("Hatched %s" % (pet))
+            print("Hatched %s" % (nice_animal(pet)))
 
     # Mounts
     amounts = aitems['mounts']
     bmounts = bitems['mounts']
     for mount in amounts:
         if bmounts.get(mount, '') != amounts[mount] and amounts[mount] > 0:
-            print("Metamorphosed a %s" % (mount))
+            print("Metamorphosed a %s" % (nice_animal(mount)))
 
     # Equipment
     bequip = bitems['gear']['equipped']
@@ -474,7 +479,8 @@ def cli():
                     if items['food'][food] < bites:
                         bites = items['food'][food]
 
-                    print("Feeding %d %s to %s" % (bites, food, " ".join(mouth.split('-')[::-1])))
+                    print("Feeding %d %s to %s" % (bites, food,
+                                                   nice_animal(mouth)))
                     before_user = user
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     ops = []
@@ -738,7 +744,7 @@ def cli():
         batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
         ops = [{'op':"equip", 'params':{"type": "pet", "key": chosen}}]
         user = batch(_method='post', ops=ops)
-        print("You are now walking with a %s" % chosen)
+        print("You are now walking with a %s" % nice_animal(chosen))
 
     elif args['<command>'] == 'ride':
         user = hbt.user()
@@ -757,7 +763,7 @@ def cli():
         batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
         ops = [{'op':"equip", 'params':{"type": "mount", "key": chosen}}]
         user = batch(_method='post', ops=ops)
-        print("You are now riding a %s" % chosen)
+        print("You are now riding a %s" % nice_animal(chosen))
 
     elif args['<command>'] == 'equip':
         equipping = args['<args>']
@@ -848,15 +854,17 @@ def cli():
             quest_type = cache.get(SECTION_CACHE_QUEST, 'quest_type')
             if quest_type == 'collect':
                 qp_tmp = party['quest']['progress']['collect']
-                quest_progress = qp_tmp.values()[0]['count']
+                # Attack of the Mundane didn't have a count
+                quest_progress = qp_tmp.values()[0] # ['count']
             else:
                 quest_progress = party['quest']['progress']['hp']
 
-            quest = '"%s" %s/%s (-%d)' % (
+            quest = '"%s" %s/%s' % (
                     cache.get(SECTION_CACHE_QUEST, 'quest_title'),
                     str(int(quest_progress)),
-                    cache.get(SECTION_CACHE_QUEST, 'quest_max'),
-                    quest_damage)
+                    cache.get(SECTION_CACHE_QUEST, 'quest_max'))
+            if not quest_type == 'collect':
+                quest += ' (-%d)' % quest_damage
 
         # prepare and print status strings
         title = 'Level %d %s' % (stats['lvl'], stats['class'].capitalize())
@@ -885,8 +893,8 @@ def cli():
         print('%s %s' % ('Mana:'.rjust(len_ljust, ' '), mana))
         print('%s %s' % ('Currency:'.rjust(len_ljust, ' '), currency))
         print('%s %s' % ('Perishables:'.rjust(len_ljust, ' '), perishables))
-        print('%s %s' % ('Pet:'.rjust(len_ljust, ' '), pet))
-        print('%s %s' % ('Mount:'.rjust(len_ljust, ' '), mount))
+        print('%s %s' % ('Pet:'.rjust(len_ljust, ' '), nice_animal(pet)))
+        print('%s %s' % ('Mount:'.rjust(len_ljust, ' '), nice_animal(mount)))
         print('%s %s' % ('Quest:'.rjust(len_ljust, ' '), quest))
         print('%s %s' % ('Party Health:'.rjust(len_ljust, ' '), member_health))
 
