@@ -856,6 +856,7 @@ def cli():
                 qp_tmp = party['quest']['progress']['collect']
                 # Attack of the Mundane didn't have a count
                 quest_progress = qp_tmp.values()[0] # ['count']
+                user_found = user['party']['quest']['progress']['collect'].values()[0]
             else:
                 quest_progress = party['quest']['progress']['hp']
 
@@ -865,6 +866,8 @@ def cli():
                     cache.get(SECTION_CACHE_QUEST, 'quest_max'))
             if not quest_type == 'collect':
                 quest += ' (-%d)' % quest_damage
+            elif quest_type == 'collect':
+                quest += ' (+%d)' % user_found
 
         # prepare and print status strings
         title = 'Level %d %s' % (stats['lvl'], stats['class'].capitalize())
