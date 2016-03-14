@@ -19,6 +19,7 @@ import netrc
 import os.path
 import random
 import sys
+from re import finditer
 from time import sleep, time
 from webbrowser import open_new_tab
 
@@ -183,7 +184,11 @@ def get_task_ids(tids):
 
 def nice_animal(animal):
     prettied = " ".join(animal.split('-')[::-1])
-    return prettied
+    # split camel cased words
+    matches = finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)',
+                        prettied)
+    prettier = ' '.join([m.group(0) for m in matches])
+    return prettier
 
 
 def updated_task_list(tasks, tids):
