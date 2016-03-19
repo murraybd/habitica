@@ -187,7 +187,7 @@ def nice_name(thing):
     # split camel cased words
     matches = finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)',
                         prettied)
-    prettier = ' '.join([m.group(0) for m in matches])
+    prettier = ' '.join([m.group(0).title() for m in matches])
     return prettier
 
 
@@ -825,13 +825,14 @@ def cli():
             # wtf‽
             # party['quest']['progress'] != user['party']['quest']['progress']
             quest_damage = user['party']['quest']['progress']['up']
+            collect_quest = {}
 
             if cache.get(SECTION_CACHE_QUEST, 'quest_key') != quest_key:
                 # we're on a new quest, update quest key
                 logging.info('Updating quest information...')
                 content = hbt.content()
                 quest_type = ''
-                quest_max = '-1'
+                quest_max = []
                 quest_title = content['quests'][quest_key]['text']
 
                 # if there's a content/quests/<quest_key/collect,
@@ -840,40 +841,49 @@ def cli():
                 if content.get('quests', {}).get(quest_key, {}).get('collect'):
                     logging.debug("\tOn a collection type of quest")
                     quest_type = 'collect'
-                    clct = content['quests'][quest_key]['collect'].values()[0]
-                    quest_max = clct['count']
+                    for k, v in content['quests'][quest_key]['collect'].iteritems():
+                        if k not in collect_quest.keys():
+                            collect_quest[k] = {}
+                        collect_quest[k]['max'] = v['count']
+                        quest_max.extend(k, str(v['count']))
                 # else if it's a boss, then hit up
                 # content/quests/<quest_key>/boss/hp
                 elif content.get('quests', {}).get(quest_key, {}).get('boss'):
                     logging.debug("\tOn a boss/hp type of quest")
                     quest_type = 'hp'
-                    quest_max = content['quests'][quest_key]['boss']['hp']
-
+                    quest_max.append(str(content['quests'][quest_key]['boss']['hp']))
                 # store repr of quest info from /content
                 cache = update_quest_cache(CACHE_CONF,
                                            quest_key=str(quest_key),
                                            quest_type=str(quest_type),
-                                           quest_max=str(quest_max),
+                                           quest_max=' '.join(quest_max),
                                            quest_title=str(quest_title))
 
             # now we use /party and quest_type to figure out our progress!
             quest_type = cache.get(SECTION_CACHE_QUEST, 'quest_type')
+            quest_progress = []
+            quest = '"%s"' % (cache.get(SECTION_CACHE_QUEST, 'quest_title'))
             if quest_type == 'collect':
                 qp_tmp = party['quest']['progress']['collect']
-                # Attack of the Mundane didn't have a count
-                quest_progress = qp_tmp.values()[0] # ['count']
-                user_found = user['party']['quest']['progress']['collect'].values()[0]
+                # For some quests you collect multiple types of things.
+                for k, v in qp_tmp.iteritems():
+                    quest_progress.append('%s: %s' % (nice_name(k), v))
+                    if k not in collect_quest.keys():
+                        collect_quest[k] = {}
+                    collect_quest[k]['total'] = v
+                for k, v in user['party']['quest']['progress']['collect'].iteritems():
+                    collect_quest[k]['current']  = v
+                count = 1
+                for k, v in collect_quest.iteritems():
+                    quest += ' %s %d/%d' % (nice_name(k), collect_quest[k]['total'],
+                                            int(cache.get(SECTION_CACHE_QUEST, 'quest_max').split(' ')[count]))
+                    quest += ' (+%d)' % (collect_quest[k]['current'])
+                    count += 2
             else:
-                quest_progress = party['quest']['progress']['hp']
-
-            quest = '"%s" %s/%s' % (
-                    cache.get(SECTION_CACHE_QUEST, 'quest_title'),
-                    str(int(quest_progress)),
-                    cache.get(SECTION_CACHE_QUEST, 'quest_max'))
-            if not quest_type == 'collect':
+                quest_progress.append('%s' % party['quest']['progress']['hp'])
+                quest += ' %s/%s' % (' '.join(quest_progress),
+                                     cache.get(SECTION_CACHE_QUEST, 'quest_max'))
                 quest += ' (-%d)' % quest_damage
-            elif quest_type == 'collect':
-                quest += ' (+%d)' % user_found
 
         # prepare and print status strings
         title = 'Level %d %s' % (stats['lvl'], stats['class'].capitalize())
