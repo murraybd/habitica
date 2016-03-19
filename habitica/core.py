@@ -880,7 +880,7 @@ def cli():
                     quest += ' (+%d)' % (collect_quest[k]['current'])
                     count += 2
             else:
-                quest_progress.append('%s' % party['quest']['progress']['hp'])
+                quest_progress.append('%d' % party['quest']['progress']['hp'])
                 quest += ' %s/%s' % (' '.join(quest_progress),
                                      cache.get(SECTION_CACHE_QUEST, 'quest_max'))
                 quest += ' (-%d)' % quest_damage
