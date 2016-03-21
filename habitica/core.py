@@ -19,6 +19,7 @@ import netrc
 import os.path
 import random
 import sys
+from re import finditer
 from time import sleep, time
 from webbrowser import open_new_tab
 
@@ -181,9 +182,13 @@ def get_task_ids(tids):
     return [e - 1 for e in set(task_ids)]
 
 
-def nice_animal(animal):
-    prettied = " ".join(animal.split('-')[::-1])
-    return prettied
+def nice_name(thing):
+    prettied = " ".join(thing.split('-')[::-1])
+    # split camel cased words
+    matches = finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)',
+                        prettied)
+    prettier = ' '.join([m.group(0).title() for m in matches])
+    return prettier
 
 
 def updated_task_list(tasks, tids):
@@ -259,14 +264,14 @@ def show_delta(hbt, before, after):
     bpets = bitems['pets']
     for pet in apets:
         if bpets.get(pet, 0) <= 0 and apets[pet] > 0:
-            print("Hatched %s" % (nice_animal(pet)))
+            print("Hatched %s" % (nice_name(pet)))
 
     # Mounts
     amounts = aitems['mounts']
     bmounts = bitems['mounts']
     for mount in amounts:
         if bmounts.get(mount, '') != amounts[mount] and amounts[mount] > 0:
-            print("Metamorphosed a %s" % (nice_animal(mount)))
+            print("Metamorphosed a %s" % (nice_name(mount)))
 
     # Equipment
     bequip = bitems['gear']['equipped']
@@ -479,8 +484,8 @@ def cli():
                     if items['food'][food] < bites:
                         bites = items['food'][food]
 
-                    print("Feeding %d %s to %s" % (bites, food,
-                                                   nice_animal(mouth)))
+                    print("Feeding %d %s to %s" % (bites, nice_name(food),
+                                                   nice_name(mouth)))
                     before_user = user
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     ops = []
@@ -563,7 +568,8 @@ def cli():
 
             for creature in creatures:
                 if mounts.get(creature, 0) == 0:
-                    need_mounts.append(creature.split('-',1)[1])
+                    name = nice_name(creature.split('-',1)[1])
+                    need_mounts.append(name)
                 if pets.get(creature, 0) < 5:
                     need_pets.append(creature.split('-',1)[1])
 
@@ -744,7 +750,7 @@ def cli():
         batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
         ops = [{'op':"equip", 'params':{"type": "pet", "key": chosen}}]
         user = batch(_method='post', ops=ops)
-        print("You are now walking with a %s" % nice_animal(chosen))
+        print("You are now walking with a %s" % nice_name(chosen))
 
     elif args['<command>'] == 'ride':
         user = hbt.user()
@@ -763,7 +769,7 @@ def cli():
         batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
         ops = [{'op':"equip", 'params':{"type": "mount", "key": chosen}}]
         user = batch(_method='post', ops=ops)
-        print("You are now riding a %s" % nice_animal(chosen))
+        print("You are now riding a %s" % nice_name(chosen))
 
     elif args['<command>'] == 'equip':
         equipping = args['<args>']
@@ -819,13 +825,14 @@ def cli():
             # wtf‽
             # party['quest']['progress'] != user['party']['quest']['progress']
             quest_damage = user['party']['quest']['progress']['up']
+            collect_quest = {}
 
             if cache.get(SECTION_CACHE_QUEST, 'quest_key') != quest_key:
                 # we're on a new quest, update quest key
                 logging.info('Updating quest information...')
                 content = hbt.content()
                 quest_type = ''
-                quest_max = '-1'
+                quest_max = []
                 quest_title = content['quests'][quest_key]['text']
 
                 # if there's a content/quests/<quest_key/collect,
@@ -834,36 +841,48 @@ def cli():
                 if content.get('quests', {}).get(quest_key, {}).get('collect'):
                     logging.debug("\tOn a collection type of quest")
                     quest_type = 'collect'
-                    clct = content['quests'][quest_key]['collect'].values()[0]
-                    quest_max = clct['count']
+                    for k, v in content['quests'][quest_key]['collect'].iteritems():
+                        if k not in collect_quest.keys():
+                            collect_quest[k] = {}
+                        collect_quest[k]['max'] = v['count']
+                        quest_max.extend(k, str(v['count']))
                 # else if it's a boss, then hit up
                 # content/quests/<quest_key>/boss/hp
                 elif content.get('quests', {}).get(quest_key, {}).get('boss'):
                     logging.debug("\tOn a boss/hp type of quest")
                     quest_type = 'hp'
-                    quest_max = content['quests'][quest_key]['boss']['hp']
-
+                    quest_max.append(str(content['quests'][quest_key]['boss']['hp']))
                 # store repr of quest info from /content
                 cache = update_quest_cache(CACHE_CONF,
                                            quest_key=str(quest_key),
                                            quest_type=str(quest_type),
-                                           quest_max=str(quest_max),
+                                           quest_max=' '.join(quest_max),
                                            quest_title=str(quest_title))
 
             # now we use /party and quest_type to figure out our progress!
             quest_type = cache.get(SECTION_CACHE_QUEST, 'quest_type')
+            quest_progress = []
+            quest = '"%s"' % (cache.get(SECTION_CACHE_QUEST, 'quest_title'))
             if quest_type == 'collect':
                 qp_tmp = party['quest']['progress']['collect']
-                # Attack of the Mundane didn't have a count
-                quest_progress = qp_tmp.values()[0] # ['count']
+                # For some quests you collect multiple types of things.
+                for k, v in qp_tmp.iteritems():
+                    quest_progress.append('%s: %s' % (nice_name(k), v))
+                    if k not in collect_quest.keys():
+                        collect_quest[k] = {}
+                    collect_quest[k]['total'] = v
+                for k, v in user['party']['quest']['progress']['collect'].iteritems():
+                    collect_quest[k]['current']  = v
+                count = 1
+                for k, v in collect_quest.iteritems():
+                    quest += ' %s %d/%d' % (nice_name(k), collect_quest[k]['total'],
+                                            int(cache.get(SECTION_CACHE_QUEST, 'quest_max').split(' ')[count]))
+                    quest += ' (+%d)' % (collect_quest[k]['current'])
+                    count += 2
             else:
-                quest_progress = party['quest']['progress']['hp']
-
-            quest = '"%s" %s/%s' % (
-                    cache.get(SECTION_CACHE_QUEST, 'quest_title'),
-                    str(int(quest_progress)),
-                    cache.get(SECTION_CACHE_QUEST, 'quest_max'))
-            if not quest_type == 'collect':
+                quest_progress.append('%d' % party['quest']['progress']['hp'])
+                quest += ' %s/%s' % (' '.join(quest_progress),
+                                     cache.get(SECTION_CACHE_QUEST, 'quest_max'))
                 quest += ' (-%d)' % quest_damage
 
         # prepare and print status strings
@@ -893,8 +912,8 @@ def cli():
         print('%s %s' % ('Mana:'.rjust(len_ljust, ' '), mana))
         print('%s %s' % ('Currency:'.rjust(len_ljust, ' '), currency))
         print('%s %s' % ('Perishables:'.rjust(len_ljust, ' '), perishables))
-        print('%s %s' % ('Pet:'.rjust(len_ljust, ' '), nice_animal(pet)))
-        print('%s %s' % ('Mount:'.rjust(len_ljust, ' '), nice_animal(mount)))
+        print('%s %s' % ('Pet:'.rjust(len_ljust, ' '), nice_name(pet)))
+        print('%s %s' % ('Mount:'.rjust(len_ljust, ' '), nice_name(mount)))
         print('%s %s' % ('Quest:'.rjust(len_ljust, ' '), quest))
         print('%s %s' % ('Party Health:'.rjust(len_ljust, ' '), member_health))
 
