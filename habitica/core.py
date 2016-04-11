@@ -471,7 +471,7 @@ def cli():
                             mouth = pet
 
                 if not mouth:
-                    print("Nobody wants to eat a %s" % food)
+                    print("Nobody wants to eat a %s" % nice_name(food))
 
                 if mouth:
                     before = pets[mouth]
@@ -587,13 +587,13 @@ def cli():
 
             need = len(need_pets) + len(need_mounts)
             if need:
-                print("%s: Need %d for %s" % (egg, need, report))
+                print("%s: Need %d for %s" % (nice_name(egg), need, report))
 
             # Sell unneeded eggs.
             sell = eggs[egg] - need
             if sell > 0:
                 before = eggs[egg]
-                print("Selling %d %s egg%s" % (sell, egg,
+                print("Selling %d %s egg%s" % (sell, nice_name(egg),
                                                "" if sell == 1 else "s"))
                 for i in range(sell):
                     ops.append({'op':"sell", 'params':{'type':'eggs', 'key':egg}})
@@ -645,7 +645,8 @@ def cli():
 
             # Sell potions!
             if potions[sell] > 0:
-                print("Selling %d %s potion%s" % (potions[sell], sell,
+                print("Selling %d %s potion%s" % (potions[sell],
+                        nice_name(sell),
                         "" if potions[sell] == 1 else "s"))
                 for i in range(potions[sell]):
                     ops.append({'op':"sell", 'params':{"type":'hatchingPotions', "key":sell}})
