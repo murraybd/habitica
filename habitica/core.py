@@ -480,12 +480,19 @@ def cli():
                     # increases by 1 not 5, so find the multiple of five.
                     satiety = int(5 * round(pets[mouth]/5))
                     # 50 is "fully fed and now a mount", 5 is best food growth
-                    bites = (50 - satiety) / 5
+                    need_bites = bites = (50 - satiety) / 5
                     if items['food'][food] < bites:
                         bites = items['food'][food]
 
-                    print("Feeding %d %s to %s" % (bites, nice_name(food),
-                                                   nice_name(mouth)))
+                    # Report how many more bites are needed before a mount.
+                    moar = ""
+                    if need_bites > bites:
+                        need_bites -= bites
+                        moar = " (needs %d more serving%s)" % (need_bites,
+                                "" if need_bites == 1 else "s")
+
+                    print("Feeding %d %s to %s%s" % (bites, nice_name(food),
+                                                   nice_name(mouth), moar))
                     before_user = user
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     ops = []
