@@ -414,6 +414,9 @@ def cli():
         user = hbt.user()
         refreshed = True
 
+        attempted_foods = set()
+        fed_foods = set()
+
         while refreshed:
             refreshed = False
             items = user.get('items', [])
@@ -439,6 +442,9 @@ def cli():
                     continue
                 if suffix == 'ignore':
                     continue
+
+                # Track attempted foods
+                attempted_foods.add(food)
 
                 mouth = None
                 best = 0
@@ -470,9 +476,6 @@ def cli():
                         if pet in basic:
                             mouth = pet
 
-                if not mouth:
-                    print("Nobody wants to eat a %s" % nice_name(food))
-
                 if mouth:
                     before = pets[mouth]
 
@@ -491,6 +494,7 @@ def cli():
                         moar = " (needs %d more serving%s)" % (need_bites,
                                 "" if need_bites == 1 else "s")
 
+                    fed_foods.add(food)
                     print("Feeding %d %s to %s%s" % (bites, nice_name(food),
                                                    nice_name(mouth), moar))
                     before_user = user
@@ -507,6 +511,10 @@ def cli():
                     if pets[mouth] == before:
                         raise ValueError("failed to feed %s" % (mouth))
                     break
+
+        for food in list(attempted_foods - fed_foods):
+            print("Nobody wants to eat a %s" % nice_name(food))
+
 
     elif args['<command>'] == 'hatch':
         def hatch_refresh(user):
