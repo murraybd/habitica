@@ -19,6 +19,7 @@ import netrc
 import os.path
 import random
 import sys
+from operator import itemgetter
 from re import finditer
 from time import sleep, time
 from webbrowser import open_new_tab
@@ -281,19 +282,26 @@ def show_delta(hbt, before, after):
             print("%s now has %s" % (location, item))
 
 
-def do_item_enumerate(user, requested):
+def do_item_enumerate(user, requested, ordered=False):
     items = user.get('items', [])
     if len(requested) == 0:
         for item in items:
             print('%s' % (item))
         return
 
+    results = {}
     for name in requested:
         for item in items.get(name, []):
             count = items[name][item]
             if count:
-                print('%s: %d' % (item, count))
+                results[nice_name(item)] = count
 
+    if ordered:
+        for i, c in sorted(results.items(), key=itemgetter(1)):
+            print('%s: %d' % (i, c))
+    else:
+        for item in results:
+            print('%s: %d' % (item, results[item]))
 
 def cli():
     """Habitica command-line interface.
@@ -631,7 +639,7 @@ def cli():
 
         selling = args['<args>']
         if len(selling) == 0:
-            do_item_enumerate(user, ['hatchingPotions'])
+            do_item_enumerate(user, ['hatchingPotions'], ordered=True)
             sys.exit(0)
 
         if selling == ['all']:
