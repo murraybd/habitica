@@ -192,6 +192,38 @@ def nice_name(thing):
     return prettier
 
 
+def find_pet_to_feed(pets, items, rare, suffix, finicky):
+    mouth = None
+    best = 0
+    for pet in pets:
+        fed = items['pets'][pet]
+
+        # Unhatched pet.
+        if fed <= 0:
+            #print("Unhatched: %s" % (pet))
+            continue
+        # Unfeedable pet.
+        if pet in rare:
+            continue
+        if items['mounts'].get(pet, 0) == 1 and fed == 5:
+            #print("Has mount: %s" % (pet))
+            continue
+        # Not best food match.
+        if finicky and not pet.endswith('-%s' % (suffix)):
+            #print("Not a match for %s: %s" % (food, pet))
+            continue
+
+        # Feed the pet that is closest to becoming a mount.
+        if fed > best:
+            best = fed
+            mouth = pet
+        elif fed == best:
+            # In the case of a tie, prefer feeding basic pets
+            # to get Pet achievement.
+            if pet in basic:
+                mouth = pet
+    return mouth
+
 def updated_task_list(tasks, tids):
     for tid in sorted(tids, reverse=True):
         del(tasks[tid])
@@ -432,6 +464,11 @@ def cli():
             pets = items['pets']
             mounts = items['mounts']
 
+            magic_pets = []
+            for pet in pets:
+                if pet.split('-')[1] in ['Spooky', 'Peppermint']:
+                    magic_pets.append(pet)
+
             for food in foods:
                 # Handle seasonal foods that encode matching pet in name.
                 if '_' in food:
@@ -454,35 +491,13 @@ def cli():
                 # Track attempted foods
                 attempted_foods.add(food)
 
-                mouth = None
-                best = 0
-                for pet in pets:
-                    fed = items['pets'][pet]
+                mouth = find_pet_to_feed(pets, items, rare, suffix, True)
 
-                    # Unhatched pet.
-                    if fed <= 0:
-                        #print("Unhatched: %s" % (pet))
-                        continue
-                    # Unfeedable pet.
-                    if pet in rare:
-                        continue
-                    if items['mounts'].get(pet, 0) == 1 and fed == 5:
-                        #print("Has mount: %s" % (pet))
-                        continue
-                    # Not best food match.
-                    if not pet.endswith('-%s' % (suffix)):
-                        #print("Not a match for %s: %s" % (food, pet))
-                        continue
-
-                    # Feed the pet that is closest to becoming a mount.
-                    if fed > best:
-                        best = fed
-                        mouth = pet
-                    elif fed == best:
-                        # In the case of a tie, prefer feeding basic pets
-                        # to get Pet achievement.
-                        if pet in basic:
-                            mouth = pet
+                # If we have food but its not ideal for pet, give it to a
+                # magic pet which will eat anything.
+                if not mouth:
+                    mouth = find_pet_to_feed(magic_pets, items, rare, suffix,
+                                             False)
 
                 if mouth:
                     before = pets[mouth]
