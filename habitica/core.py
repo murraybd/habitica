@@ -192,7 +192,14 @@ def nice_name(thing):
     return prettier
 
 
-def find_pet_to_feed(pets, items, rare, suffix, finicky):
+def find_pet_to_feed(pets, items, suffix, finicky):
+    basic = [ 'BearCub', 'Cactus', 'Dragon', 'FlyingPig',
+              'Fox', 'LionCub', 'PandaCub', 'TigerCub', 'Wolf' ]
+    rare = [ 'Wolf-Veteran', 'Wolf-Cerberus', 'Dragon-Hydra',
+             'Turkey-Base', 'BearCub-Polar', 'MantisShrimp-Base',
+             'JackOLantern-Base', 'Mammoth-Base', 'Tiger-Veteran',
+             'Phoenix-Base', 'Turkey-Gilded' ]
+
     mouth = None
     best = 0
     for pet in pets:
@@ -444,12 +451,6 @@ def cli():
                     'Potatoe':          'Desert',
                     'RottenMeat':       'Zombie',
                   }
-        basic = [ 'BearCub', 'Cactus', 'Dragon', 'FlyingPig',
-                  'Fox', 'LionCub', 'PandaCub', 'TigerCub', 'Wolf' ]
-        rare = [ 'Wolf-Veteran', 'Wolf-Cerberus', 'Dragon-Hydra',
-                 'Turkey-Base', 'BearCub-Polar', 'MantisShrimp-Base',
-                 'JackOLantern-Base', 'Mammoth-Base', 'Tiger-Veteran',
-                 'Phoenix-Base', 'Turkey-Gilded' ]
 
         user = hbt.user()
         refreshed = True
@@ -491,13 +492,12 @@ def cli():
                 # Track attempted foods
                 attempted_foods.add(food)
 
-                mouth = find_pet_to_feed(pets, items, rare, suffix, True)
+                mouth = find_pet_to_feed(pets, items, suffix, True)
 
                 # If we have food but its not ideal for pet, give it to a
                 # magic pet which will eat anything.
                 if not mouth:
-                    mouth = find_pet_to_feed(magic_pets, items, rare, suffix,
-                                             False)
+                    mouth = find_pet_to_feed(magic_pets, items, suffix, False)
 
                 if mouth:
                     before = pets[mouth]
