@@ -565,7 +565,7 @@ def cli():
                               (potion, egg))
                         continue
 
-                    print("Hatching a %s %s" % (potion, egg))
+                    print("Hatching a %s %s" % (potion, nice_name(egg)))
                     before_user = user
                     batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
                     user = batch(_method='post', ops=[{'op':"hatch", 'params':{"egg":egg, "hatchingPotion":potion}}])
