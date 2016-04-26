@@ -262,35 +262,48 @@ def get_currency(gp, balance="0.0"):
         report += ', %d Silver' % (silver)
     return report
 
+max_report = { 'exp': {'title':'Experience', 'max':'toNextLevel',
+                                             'maxValue': "0"},
+               'hp':  {'title':'Health', 'max':'maxHealth',
+                                         'maxValue': "50"},
+               'mp':  {'title':'Mana', 'max':'maxMP',
+                                       'maxValue': "100"},
+             }
+
+# XXX: This is a hack to refresh the current stats to find maxes,
+# which are regularly missing for some reason.
+def fix_max(hbt, item, bstats, astats, refresh=True):
+    if astats.get(max_report[item]['max'], None) == None:
+        # If max exists in "before" stats, use it instead.
+        if bstats.get(max_report[item]['max'], None) != None:
+            astats[max_report[item]['max']] = bstats[max_report[item]['max']]
+        elif refresh:
+            # Perform full refresh and update all report items.
+            refresh = hbt.user()
+            rstats = refresh.get('stats', [])
+            for fixup in max_report:
+                astats[max_report[fixup]['max']] = rstats[max_report[fixup]['max']]
+        else:
+            # XXX: no refresh allowed, give up and use static value
+            astats[max_report[item]['max']] = max_report[item]['maxValue']
+    return astats
+
 def show_delta(hbt, before, after):
     bstats = before.get('stats', [])
     astats = after.get('stats', [])
     bitems = before.get('items', [])
     aitems = after.get('items', [])
 
-    report = { 'exp': {'title':'Experience', 'max':'maxHealth'},
-               'hp':  {'title':'Health', 'max':'toNextLevel'},
-               'mp':  {'title':'Mana', 'max':'maxMP'},
-             }
-
-    for item in report:
+    for item in max_report:
         delta = int(astats[item] - bstats[item])
         if delta != 0:
-            # XXX: This is a hack to refresh the current stats to fine maxes,
-            # which are regularly missing for some reason.
-            if astats.get(report[item]['max'], None) == None:
-                # If max exists in "before" stats, use it instead.
-                if bstats.get(report[item]['max'], None) != None:
-                    astats[report[item]['max']] = bstats[report[item]['max']]
-                else:
-                    # Perform full refresh and update all report items.
-                    refresh = hbt.user()
-                    rstats = refresh.get('stats', [])
-                    for fixup in report:
-                        astats[report[fixup]['max']] = rstats[report[fixup]['max']]
-            print('%s: %d (%d/%d)' % (report[item]['title'],
+            # XXX: hack to fix max entry.
+            astats = fix_max(hbt, item, bstats, astats)
+
+            print('%s: %d (%d/%d)' % (max_report[item]['title'],
                                       delta, int(astats[item]),
-                                      int(astats.get(report[item]['max'], "0"))))
+                                      int(astats.get(max_report[item]['max'],
+                                                     "0"))))
 
     # Currency
     bgp = float(bstats.get('gp', "0.0"))
@@ -342,6 +355,32 @@ def do_item_enumerate(user, requested, ordered=False):
         for item in results:
             print('%s: %d' % (item, results[item]))
 
+def stat_down(hbt, user, stat, amount):
+    stats = user.get('stats', [])
+    stats = fix_max(hbt, stat, stats, stats, refresh=False)
+    down = int(stats.get(max_report[stat]['max'],"0")) - int(stats[stat])
+    print("%s has %d/%d %s" % (user['profile']['name'], int(stats[stat]),
+                               int(stats[max_report[stat]['max']]),
+                               max_report[stat]['title']))
+    if down >= amount:
+        return True
+    return False
+
+def party_hp_down_ten(hbt, user, party=None):
+    down = False
+    if party == None:
+        party = hbt.groups.party()
+    for member in party['members']:
+        if stat_down(hbt, member, 'hp', 10):
+            print("%s needs healing" % (member['profile']['name']))
+            return
+    print("Already in good health!")
+    sys.exit(0)
+
+def hp_down_ten(hbt, user):
+    # Do a party check, but just a party of myself.
+    party_hp_down_ten(hbt, user, party={'members': [user]})
+
 def cli():
     """Habitica command-line interface.
 
@@ -377,7 +416,8 @@ def cli():
     sell all [<max>]           Sell all hatching potions (up to <max> many)
     sell <type> [<max>]        Sell all <type> hatching potions (up to <max>)
     cast                       Show list of castable spells
-    cast <spell> [<task-id>]   Cast <spell> (on <task-id>)
+    cast <spell> [<id>]        Cast <spell> (on task <id>)
+    cast smart <spell> [<id>]  After smart-check, cast <spell> (on task <id>)
     gems                       Buy gems until you can't
     walk                       Walk (equip) a random pet
     ride                       Ride a random mount
@@ -725,13 +765,25 @@ def cli():
                             }
                  }
 
+        smart = {'heal': hp_down_ten,
+                 'heallAll': party_hp_down_ten,
+                }
+
         if len(args['<args>']) == 0:
             for spell in spells[uclass]:
                 print("%s (%s)" % (spell, spells[uclass][spell]))
             sys.exit(0)
 
-        # TODO: use some string magic?
         spell = args['<args>'][0]
+
+        precast = None
+        if spell == "smart":
+            spell = args['<args>'].pop(1)
+            if spell not in smart:
+                print("There's no smart way to cast that.")
+                sys.exit(1)
+            precast = smart[spell]
+
         if len(args['<args>']) == 2:
             task = args['<args>'][1]
         else:
@@ -744,6 +796,10 @@ def cli():
         if target == 'task' and not task:
             print("You need to provide a task id to target.")
             sys.exit(1)
+
+        # Do some smart checks before casting?
+        if precast != None:
+            precast(hbt, user)
 
         before_user = user
         charclass = api.Habitica(auth=auth, resource="user", aspect="class")
