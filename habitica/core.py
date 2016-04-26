@@ -271,20 +271,20 @@ max_report = { 'exp': {'title':'Experience', 'max':'toNextLevel',
              }
 
 # XXX: This is a hack to refresh the current stats to find maxes,
-# which are regularly missing for some reason.
+# which are sometimes missing for some reason.
 def fix_max(hbt, item, bstats, astats, refresh=True):
     if astats.get(max_report[item]['max'], None) == None:
         # If max exists in "before" stats, use it instead.
         if bstats.get(max_report[item]['max'], None) != None:
             astats[max_report[item]['max']] = bstats[max_report[item]['max']]
-        elif refresh:
+        elif refresh and item != 'hp':
             # Perform full refresh and update all report items.
             refresh = hbt.user()
             rstats = refresh.get('stats', [])
             for fixup in max_report:
                 astats[max_report[fixup]['max']] = rstats[max_report[fixup]['max']]
         else:
-            # XXX: no refresh allowed, give up and use static value
+            # Either no refresh wanted, or max HP is missing which is static.
             astats[max_report[item]['max']] = max_report[item]['maxValue']
     return astats
 
