@@ -801,6 +801,15 @@ def cli():
         if precast != None:
             precast(hbt, user)
 
+        # Report casting.
+        msg = "Casting %s" % (spell)
+        if target == 'party':
+            msg += " on the party"
+        elif target == 'task':
+            msg += " on task %s" % (task)
+        msg += "."
+        print(msg)
+
         before_user = user
         charclass = api.Habitica(auth=auth, resource="user", aspect="class")
         user = charclass(_method='post', _id='cast', _direction=spell,
