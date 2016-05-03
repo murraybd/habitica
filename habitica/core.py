@@ -740,7 +740,9 @@ def cli():
 
     elif args['<command>'] == 'dump':
         user = hbt.user()
-        print(json.dumps(user, indent=4, sort_keys=True))
+        party = hbt.groups.party()
+        print(json.dumps({'user':user, 'party':party},
+              indent=4, sort_keys=True))
 
     elif args['<command>'] == 'cast':
         user = hbt.user()
@@ -934,7 +936,7 @@ def cli():
                 quest_max = []
                 quest_title = content['quests'][quest_key]['text']
 
-                # if there's a content/quests/<quest_key/collect,
+                # if there's a content/quests/<quest_key>/collect,
                 # then drill into .../collect/<whatever>/count and
                 # .../collect/<whatever>/text and get those values
                 if content.get('quests', {}).get(quest_key, {}).get('collect'):
@@ -944,7 +946,7 @@ def cli():
                         if k not in collect_quest.keys():
                             collect_quest[k] = {}
                         collect_quest[k]['max'] = v['count']
-                        quest_max.extend(k, str(v['count']))
+                        quest_max.append(str(v['count']))
                 # else if it's a boss, then hit up
                 # content/quests/<quest_key>/boss/hp
                 elif content.get('quests', {}).get(quest_key, {}).get('boss'):
@@ -972,12 +974,12 @@ def cli():
                     collect_quest[k]['total'] = v
                 for k, v in user['party']['quest']['progress']['collect'].iteritems():
                     collect_quest[k]['current']  = v
-                count = 1
+                count = 0
                 for k, v in collect_quest.iteritems():
                     quest += ' %s %d/%d' % (nice_name(k), collect_quest[k]['total'],
                                             int(cache.get(SECTION_CACHE_QUEST, 'quest_max').split(' ')[count]))
                     quest += ' (+%d)' % (collect_quest[k]['current'])
-                    count += 2
+                    count += 1
             else:
                 quest_progress.append('%d' % party['quest']['progress']['hp'])
                 quest += ' %s/%s' % (' '.join(quest_progress),
