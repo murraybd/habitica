@@ -978,7 +978,12 @@ def cli():
                 for k, v in collect_quest.iteritems():
                     quest += ' %s %d/%d' % (nice_name(k), collect_quest[k]['total'],
                                             int(cache.get(SECTION_CACHE_QUEST, 'quest_max').split(' ')[count]))
-                    quest += ' (+%d)' % (collect_quest[k]['current'])
+                    # If somebody is in the Inn, they will not have collected
+                    # anything.
+                    if k not in collect_quest or 'current' not in collect_quest[k]:
+                        quest += ' (+0)'
+                    else:
+                        quest += ' (+%d)' % (collect_quest[k]['current'])
                     count += 1
             else:
                 quest_progress.append('%d' % party['quest']['progress']['hp'])
