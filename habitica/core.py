@@ -309,8 +309,11 @@ def show_delta(hbt, before, after):
     bgp = float(bstats.get('gp', "0.0"))
     agp = float(astats.get('gp', "0.0"))
     gp = agp - bgp
-    if gp != 0.0:
-        print("%s" % (get_currency(gp)))
+    bgems = float(before.get('balance', "0.0"))
+    agems = float(after.get('balance', "0.0"))
+    gems = agems - bgems
+    if gp != 0.0 or gems != 0.0:
+        print("%s" % (get_currency(gp, gems)))
 
     # Pets
     apets = aitems['pets']
@@ -820,22 +823,13 @@ def cli():
         user = hbt.user()
         before_user = user
         gem_buy_limit = 45
-        bought = 0
-        # N.B. I bought all my gems so can't test more until next month
-        while bought < gem_buy_limit:
-            user = hbt.user()
-            gems_bought = user['purchased']['plan']['gemsBought']
-            if bought == 0:
-                bought += int(gems_bought)
-            elif bought != gems_bought:
-                print("Something is awry!")
-                sys.exit(1)
-            # https://habitica.com/api/v2/user/inventory/purchase/gems/gem
-            charclass = api.Habitica(auth=auth, resource="user", aspect="inventory")
-            user = charclass(_method='post', _id='purchase',
-                             _direction="gems/gem")
-            bought += 1
+        gems = gem_buy_limit - int(user['purchased']['plan']['gemsBought'])
 
+        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+        ops = []
+        for i in range(gems):
+            ops.append({'op':"purchase", 'params':{"type": "gems", "key": "gem"}})
+        user = batch(_method='post', ops=ops)
         show_delta(hbt, before_user, user)
 
     elif args['<command>'] == 'walk':
