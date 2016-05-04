@@ -909,6 +909,7 @@ def cli():
         party = hbt.groups.party()
         stats = user.get('stats', '')
         items = user.get('items', '')
+        sleeping = user['preferences']['sleep']
         food_count = sum(items['food'].values())
         egg_count = sum(items['eggs'].values())
         potion_count = sum(items['hatchingPotions'].values())
@@ -993,6 +994,8 @@ def cli():
 
         # prepare and print status strings
         title = 'Level %d %s' % (stats['lvl'], stats['class'].capitalize())
+        if sleeping:
+            title += ' (zZZz)'
         health = '%d/%d' % (stats['hp'], stats['maxHealth'])
         xp = '%d/%d' % (int(stats['exp']), stats['toNextLevel'])
         mana = '%d/%d' % (int(stats['mp']), stats['maxMP'])
