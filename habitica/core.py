@@ -64,6 +64,7 @@ def load_settings(configfile):
 
     integers = {'sell-max': "-1",
                 'sell-reserved': "-1",
+                'eggs-extra': "0",
                }
     strings = { }
     defaults = integers.copy()
@@ -667,7 +668,7 @@ def cli():
                           "" if len(need_mounts) == 1 else "s",
                           ", ".join(need_mounts))
 
-            need = len(need_pets) + len(need_mounts)
+            need = len(need_pets) + len(need_mounts) + settings['eggs-extra']
             if need:
                 print("%s: Need %d for %s" % (nice_name(egg), need, report))
 
