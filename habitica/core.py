@@ -825,7 +825,10 @@ def cli():
     elif args['<command>'] == 'gems':
         user = hbt.user()
         before_user = user
-        gem_buy_limit = 45
+        # base of 25 + (5 * (months subscribed / 3)) which seems to be
+        # gemCapExtra
+        # c.f. http://habitica.wikia.com/wiki/Gems
+        gem_buy_limit = 25 + int(user['purchased']['plan']['consecutive']['gemCapExtra'])
         gems = gem_buy_limit - int(user['purchased']['plan']['gemsBought'])
 
         batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
