@@ -667,10 +667,14 @@ def cli():
                 report += "%d Mount%s (%s)" % (len(need_mounts),
                           "" if len(need_mounts) == 1 else "s",
                           ", ".join(need_mounts))
+            if settings['eggs-extra']:
+                if len(report):
+                    report += ", "
+                report += "%d extra" % (settings['eggs-extra'])
 
             need = len(need_pets) + len(need_mounts) + settings['eggs-extra']
-            if need:
-                print("%s egg: Need %d for %s" % (nice_name(egg), need, report if report else "your hoard."))
+            if need and need != settings['eggs-extra']:
+                print("%s egg: Need %d for %s" % (nice_name(egg), need, report))
 
             # Sell unneeded eggs.
             sell = eggs[egg] - need
