@@ -46,16 +46,16 @@ class Habitica(object):
         # so either i need to find a cleaner way here, or i should
         # get involved in the API itself and... help it.
         if self.aspect:
-            aspect_id = kwargs.pop('_id', None)
-            direction = kwargs.pop('_direction', None)
+            arg_one = kwargs.pop('_one', None)
+            arg_two = kwargs.pop('_two', None)
             uri = '%s/%s' % (self.auth['url'], API_URI_BASE)
-            if aspect_id is not None:
+            if arg_one is not None:
                 uri += '/%s/%s/%s' % (self.resource, self.aspect,
-                                      str(aspect_id))
+                                      str(arg_one))
             else:
                 uri += '/%s/%s' % (self.resource, self.aspect)
-            if direction is not None:
-                uri = '%s/%s' % (uri, direction)
+            if arg_two is not None:
+                uri = '%s/%s' % (uri, arg_two)
         else:
             uri = '%s/%s/%s' % (self.auth['url'],
                                 API_URI_BASE,

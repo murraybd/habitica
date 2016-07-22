@@ -481,6 +481,7 @@ def cli():
         user = hbt.user()
         do_item_enumerate(user, args['<args>'])
 
+    # Feed all possible animals (v3 ok)
     elif args['<command>'] == 'feed':
         feeding = {
                     'Saddle':           'ignore',
@@ -565,12 +566,10 @@ def cli():
                     print("Feeding %d %s to %s%s" % (bites, nice_name(food),
                                                    nice_name(mouth), moar))
                     before_user = user
-                    batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-                    ops = []
+                    feeder = api.Habitica(auth=auth, resource="user", aspect="feed")
                     for i in range(bites):
-                        ops.append({'op':"feed", 'params':{"pet":mouth,
-                                                           "food":food}})
-                    user = batch(_method='post', ops=ops)
+                        feeder(_method='post', _one=mouth, _two=food)
+                    user = hbt.user()
                     show_delta(hbt, before_user, user)
                     refreshed = True
                     items = user.get('items', [])
@@ -583,6 +582,7 @@ def cli():
             print("Nobody wants to eat a %s" % nice_name(food))
 
 
+    # Hatch all possible eggs (v3 ok)
     elif args['<command>'] == 'hatch':
         def hatch_refresh(user):
             items = user.get('items', [])
@@ -627,8 +627,9 @@ def cli():
                     print("Hatching a %s %s" % (nice_name(potion),
                                                 nice_name(egg)))
                     before_user = user
-                    batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-                    user = batch(_method='post', ops=[{'op':"hatch", 'params':{"egg":egg, "hatchingPotion":potion}}])
+                    hatcher = api.Habitica(auth=auth, resource="user", aspect="hatch")
+                    hatcher(_method='post', _one=egg, _two=potion)
+                    user = hbt.user()
                     show_delta(hbt, before_user, user)
                     refreshed = True
                     items, pets, mounts, eggs, potions = hatch_refresh(user)
@@ -636,7 +637,7 @@ def cli():
                         raise ValueError("failed to hatch %s" % (creature))
 
         # How many eggs do we need for the future?
-        ops = []
+        tosell = []
         for egg in eggs:
             need_pets = []
             need_mounts = []
@@ -683,14 +684,17 @@ def cli():
                 print("Selling %d %s egg%s" % (sell, nice_name(egg),
                                                "" if sell == 1 else "s"))
                 for i in range(sell):
-                    ops.append({'op':"sell", 'params':{'type':'eggs', 'key':egg}})
+                    tosell.append(egg)
 
-        if len(ops) > 0:
+        if len(tosell) > 0:
             before_user = user
-            batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-            user = batch(_method='post', ops=ops)
+            seller = api.Habitica(auth=auth, resource="user", aspect="sell")
+            for i in range(len(tosell)):
+                seller(_method='post', _one='eggs', _two=tosell[i])
+            user = hbt.user()
             show_delta(hbt, before_user, user)
 
+    # Sell all unneeded hatching potions (v3 ok)
     elif args['<command>'] == 'sell':
         sell_reserved = settings['sell-reserved']
         sell_max = settings['sell-max']
@@ -709,7 +713,7 @@ def cli():
         if selling == ['all']:
             selling = kinds
 
-        ops = []
+        tosell = []
         items = user.get('items', [])
         stats = user.get('stats', [])
         potions = items['hatchingPotions']
@@ -736,19 +740,23 @@ def cli():
                         nice_name(sell),
                         "" if potions[sell] == 1 else "s"))
                 for i in range(potions[sell]):
-                    ops.append({'op':"sell", 'params':{"type":'hatchingPotions', "key":sell}})
-        if len(ops):
+                    tosell.append(sell)
+        if len(tosell):
             before_user = user
-            batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-            user = batch(_method='post', op="sell", ops=ops)
+            seller = api.Habitica(auth=auth, resource="user", aspect="sell")
+            for i in range(len(tosell)):
+                seller(_method='post', _one='hatchingPotions', _two=tosell[i])
+            user = hbt.user()
             show_delta(hbt, before_user, user)
 
+    # dump raw json for user (v3 ok)
     elif args['<command>'] == 'dump':
         user = hbt.user()
         party = hbt.groups.party()
         print(json.dumps({'user':user, 'party':party},
               indent=4, sort_keys=True))
 
+    # cast/skill on task/self/party (v3 ok)
     elif args['<command>'] == 'cast':
         user = hbt.user()
         stats = user.get('stats', '')
@@ -769,7 +777,7 @@ def cli():
                              'frost': 'self'
                             },
                   'healer': {'heal': 'self',
-                             'heallAll': 'party',
+                             'healAll': 'party',
                              'protectAura': 'party',
                              'brightness': 'self'
                             }
@@ -822,10 +830,14 @@ def cli():
 
         before_user = user
         charclass = api.Habitica(auth=auth, resource="user", aspect="class")
-        user = charclass(_method='post', _id='cast', _direction=spell,
-                         targetType=target, targetId=task)
+        if task != '':
+            charclass(_method='post', _one='cast', _two=spell, targetId=task)
+        else:
+            charclass(_method='post', _one='cast', _two=spell)
+        user = hbt.user()
         show_delta(hbt, before_user, user)
 
+    # buy as many gems as possible (v3 ok)
     elif args['<command>'] == 'gems':
         user = hbt.user()
         before_user = user
@@ -835,13 +847,13 @@ def cli():
         gem_buy_limit = 25 + int(user['purchased']['plan']['consecutive']['gemCapExtra'])
         gems = gem_buy_limit - int(user['purchased']['plan']['gemsBought'])
 
-        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-        ops = []
+        purchaser = api.Habitica(auth=auth, resource="user", aspect="purchase")
         for i in range(gems):
-            ops.append({'op':"purchase", 'params':{"type": "gems", "key": "gem"}})
-        user = batch(_method='post', ops=ops)
+            purchaser(_method='post', _one='gems', _two='gem')
+        user = hbt.user()
         show_delta(hbt, before_user, user)
 
+    # Activate a random pet (v3 ok)
     elif args['<command>'] == 'walk':
         user = hbt.user()
         items = user.get('items', [])
@@ -856,11 +868,11 @@ def cli():
 
         choice = random.randrange(0, len(pets)-1)
         chosen = pets.keys()[choice]
-        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-        ops = [{'op':"equip", 'params':{"type": "pet", "key": chosen}}]
-        user = batch(_method='post', ops=ops)
+        equiper = batch = api.Habitica(auth=auth, resource="user", aspect="equip")
+        equiper(_method='post', _one='pet', _two=chosen)
         print("You are now walking with a %s" % nice_name(chosen))
 
+    # Ride a random mount (v3 ok)
     elif args['<command>'] == 'ride':
         user = hbt.user()
         items = user.get('items', [])
@@ -875,11 +887,11 @@ def cli():
 
         choice = random.randrange(0, len(mounts)-1)
         chosen = mounts.keys()[choice]
-        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-        ops = [{'op':"equip", 'params':{"type": "mount", "key": chosen}}]
-        user = batch(_method='post', ops=ops)
+        equiper = batch = api.Habitica(auth=auth, resource="user", aspect="equip")
+        equiper(_method='post', _one='mount', _two=chosen)
         print("You are now riding a %s" % nice_name(chosen))
 
+    # equip a set of equipment (v3 ok)
     elif args['<command>'] == 'equip':
         equipping = args['<args>']
         user = hbt.user()
@@ -887,13 +899,13 @@ def cli():
         items = user.get('items', [])
         equipped = items['gear']['equipped']
 
-        ops = []
-        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
+        equiper = batch = api.Habitica(auth=auth, resource="user", aspect="equip")
         for equipment in equipping:
-            ops.append({'op':"equip", 'params':{"type": "equipped", "key": equipment}})
-        user = batch(_method='post', ops=ops)
+            equiper(_method='post', _one='equipped', _two=equipment)
+        user = hbt.user()
         show_delta(hbt, before_user, user)
 
+    # sleep/wake up (v3 ok)
     elif args['<command>'] == 'sleep' or args['<command>'] == 'arise':
         user = hbt.user()
         intent = args['<command>']
@@ -905,11 +917,10 @@ def cli():
             print("You are already checked out.")
             sys.exit(1)
 
-        batch = api.Habitica(auth=auth, resource="user", aspect="batch-update?_v=137&data=%d" % (int(time() * 1000)))
-        ops = [{'op':"sleep"}]
-        user = batch(_method='post', ops=ops)
+        sleeper = api.Habitica(auth=auth, resource="user", aspect="sleep")
+        sleeper(_method='post')
 
-    # GET user
+    # GET user status (v3 busted)
     elif args['<command>'] == 'status':
 
         # gather status info
@@ -1034,15 +1045,15 @@ def cli():
         print('%s %s' % ('Quest:'.rjust(len_ljust, ' '), quest))
         print('%s %s' % ('Party Health:'.rjust(len_ljust, ' '), member_health))
 
-    # GET/POST habits
+    # GET/POST habits (v3 get ok)
     elif args['<command>'] == 'habits':
-        habits = hbt.user.tasks(type='habit')
+        habits = hbt.tasks.user(type='habits')
         if 'up' in args['<args>']:
             tids = get_task_ids(args['<args>'][1:])
             for tid in tids:
                 tval = habits[tid]['value']
-                hbt.user.tasks(_id=habits[tid]['id'],
-                               _direction='up', _method='post')
+                hbt.user.tasks(_one=habits[tid]['id'],
+                               _two='up', _method='post')
                 print('incremented task \'%s\''
                       % habits[tid]['text'].encode('utf8'))
                 habits[tid]['value'] = tval + (TASK_VALUE_BASE ** tval)
@@ -1051,8 +1062,8 @@ def cli():
             tids = get_task_ids(args['<args>'][1:])
             for tid in tids:
                 tval = habits[tid]['value']
-                hbt.user.tasks(_id=habits[tid]['id'],
-                               _direction='down', _method='post')
+                hbt.user.tasks(_one=habits[tid]['id'],
+                               _two='down', _method='post')
                 print('decremented task \'%s\''
                       % habits[tid]['text'].encode('utf8'))
                 habits[tid]['value'] = tval - (TASK_VALUE_BASE ** tval)
@@ -1061,14 +1072,14 @@ def cli():
             score = qualitative_task_score_from_value(task['value'])
             print('[%s] %s %s' % (score, i + 1, task['text'].encode('utf8')))
 
-    # GET/PUT tasks:daily
+    # GET/PUT tasks:daily (v3 get ok)
     elif args['<command>'] == 'dailies':
-        dailies = hbt.user.tasks(type='daily')
+        dailies = hbt.tasks.user(type='dailys')
         if 'done' in args['<args>']:
             tids = get_task_ids(args['<args>'][1:])
             for tid in tids:
-                hbt.user.tasks(_id=dailies[tid]['id'],
-                               _direction='up', _method='post')
+                hbt.user.tasks(_one=dailies[tid]['id'],
+                               _two='up', _method='post')
                 print('marked daily \'%s\' completed'
                       % dailies[tid]['text'].encode('utf8'))
                 dailies[tid]['completed'] = True
@@ -1076,7 +1087,7 @@ def cli():
         elif 'undo' in args['<args>']:
             tids = get_task_ids(args['<args>'][1:])
             for tid in tids:
-                hbt.user.tasks(_id=dailies[tid]['id'],
+                hbt.user.tasks(_one=dailies[tid]['id'],
                                _method='put', completed=False)
                 print('marked daily \'%s\' incomplete'
                       % dailies[tid]['text'].encode('utf8'))
@@ -1084,15 +1095,15 @@ def cli():
                 sleep(HABITICA_REQUEST_WAIT_TIME)
         print_task_list(dailies)
 
-    # GET tasks:todo
+    # GET tasks:todo (v3 get ok)
     elif args['<command>'] == 'todos':
-        todos = [e for e in hbt.user.tasks(type='todo')
+        todos = [e for e in hbt.tasks.user(type='todos')
                  if not e['completed']]
         if 'done' in args['<args>']:
             tids = get_task_ids(args['<args>'][1:])
             for tid in tids:
-                hbt.user.tasks(_id=todos[tid]['id'],
-                               _direction='up', _method='post')
+                hbt.user.tasks(_one=todos[tid]['id'],
+                               _two='up', _method='post')
                 print('marked todo \'%s\' complete'
                       % todos[tid]['text'].encode('utf8'))
                 sleep(HABITICA_REQUEST_WAIT_TIME)
