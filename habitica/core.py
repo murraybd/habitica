@@ -462,7 +462,7 @@ def cli():
     # instantiate api service
     hbt = api.Habitica(auth=auth)
 
-    # GET server status
+    # GET server status (v3 ok)
     if args['<command>'] == 'server':
         server = hbt.status()
         if server['status'] == 'up':
@@ -470,13 +470,13 @@ def cli():
         else:
             print('Habitica server down... or your computer cannot connect')
 
-    # open HABITICA_TASKS_PAGE
+    # open HABITICA_TASKS_PAGE (v3 ok)
     elif args['<command>'] == 'home':
         home_url = '%s%s' % (auth['url'], HABITICA_TASKS_PAGE)
         print('Opening %s' % home_url)
         open_new_tab(home_url)
 
-    # GET item lists
+    # GET item lists (v3 ok)
     elif args['<command>'] == 'item':
         user = hbt.user()
         do_item_enumerate(user, args['<args>'])

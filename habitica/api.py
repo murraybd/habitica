@@ -13,7 +13,7 @@ import json
 
 import requests
 
-API_URI_BASE = 'api/v2'
+API_URI_BASE = 'api/v3'
 API_CONTENT_TYPE = 'application/json'
 
 
@@ -48,17 +48,12 @@ class Habitica(object):
         if self.aspect:
             aspect_id = kwargs.pop('_id', None)
             direction = kwargs.pop('_direction', None)
+            uri = '%s/%s' % (self.auth['url'], API_URI_BASE)
             if aspect_id is not None:
-                uri = '%s/%s/%s/%s/%s' % (self.auth['url'],
-                                          API_URI_BASE,
-                                          self.resource,
-                                          self.aspect,
-                                          str(aspect_id))
+                uri += '/%s/%s/%s' % (self.resource, self.aspect,
+                                      str(aspect_id))
             else:
-                uri = '%s/%s/%s/%s' % (self.auth['url'],
-                                       API_URI_BASE,
-                                       self.resource,
-                                       self.aspect)
+                uri += '/%s/%s' % (self.resource, self.aspect)
             if direction is not None:
                 uri = '%s/%s' % (uri, direction)
         else:
@@ -83,7 +78,7 @@ class Habitica(object):
 
         # print(res.url)  # debug...
         if res.status_code == requests.codes.ok:
-            return res.json()
+            return res.json()["data"]
         else:
             print(res.url)
             res.raise_for_status()
