@@ -1045,72 +1045,87 @@ def cli():
         print('%s %s' % ('Quest:'.rjust(len_ljust, ' '), quest))
         print('%s %s' % ('Party Health:'.rjust(len_ljust, ' '), member_health))
 
-    # GET/POST habits (v3 get ok)
+    # GET/POST habits (v3 ok)
     elif args['<command>'] == 'habits':
         habits = hbt.tasks.user(type='habits')
+        direction = None
         if 'up' in args['<args>']:
-            tids = get_task_ids(args['<args>'][1:])
-            for tid in tids:
-                tval = habits[tid]['value']
-                hbt.user.tasks(_one=habits[tid]['id'],
-                               _two='up', _method='post')
-                print('incremented task \'%s\''
-                      % habits[tid]['text'].encode('utf8'))
-                habits[tid]['value'] = tval + (TASK_VALUE_BASE ** tval)
-                sleep(HABITICA_REQUEST_WAIT_TIME)
+            report = 'incremented'
+            direction = 'up'
         elif 'down' in args['<args>']:
+            report = 'decremented'
+            direction = 'down'
+
+        if direction != None:
             tids = get_task_ids(args['<args>'][1:])
             for tid in tids:
                 tval = habits[tid]['value']
-                hbt.user.tasks(_one=habits[tid]['id'],
-                               _two='down', _method='post')
-                print('decremented task \'%s\''
-                      % habits[tid]['text'].encode('utf8'))
-                habits[tid]['value'] = tval - (TASK_VALUE_BASE ** tval)
-                sleep(HABITICA_REQUEST_WAIT_TIME)
+                habit = api.Habitica(auth=auth, resource="tasks", aspect=habits[tid]['id'])
+                habit(_method='post', _one='score', _two=direction)
+                print('%s habit \'%s\''
+                      % (report, habits[tid]['text'].encode('utf8')))
+                if direction == 'up':
+                    habits[tid]['value'] = tval + (TASK_VALUE_BASE ** tval)
+                else:
+                    habits[tid]['value'] = tval - (TASK_VALUE_BASE ** tval)
+                #sleep(HABITICA_REQUEST_WAIT_TIME)
+
         for i, task in enumerate(habits):
             score = qualitative_task_score_from_value(task['value'])
             print('[%s] %s %s' % (score, i + 1, task['text'].encode('utf8')))
 
-    # GET/PUT tasks:daily (v3 get ok)
+    # GET/PUT tasks:daily (v3 ok)
     elif args['<command>'] == 'dailies':
         dailies = hbt.tasks.user(type='dailys')
+        direction = None
         if 'done' in args['<args>']:
-            tids = get_task_ids(args['<args>'][1:])
-            for tid in tids:
-                hbt.user.tasks(_one=dailies[tid]['id'],
-                               _two='up', _method='post')
-                print('marked daily \'%s\' completed'
-                      % dailies[tid]['text'].encode('utf8'))
-                dailies[tid]['completed'] = True
-                sleep(HABITICA_REQUEST_WAIT_TIME)
+            report = 'completed'
+            direction = 'up'
         elif 'undo' in args['<args>']:
+            report = 'incomplete'
+            direction = 'down'
+
+        if direction != None:
+            before_user = hbt.user()
             tids = get_task_ids(args['<args>'][1:])
             for tid in tids:
-                hbt.user.tasks(_one=dailies[tid]['id'],
-                               _method='put', completed=False)
-                print('marked daily \'%s\' incomplete'
-                      % dailies[tid]['text'].encode('utf8'))
-                dailies[tid]['completed'] = False
-                sleep(HABITICA_REQUEST_WAIT_TIME)
+                daily = api.Habitica(auth=auth, resource="tasks", aspect=dailies[tid]['id'])
+                daily(_method='post', _one='score', _two=direction)
+                print('marked daily \'%s\' %s'
+                      % (dailies[tid]['text'].encode('utf8'), report))
+                if direction == 'up':
+                    dailies[tid]['completed'] = True
+                else:
+                    dailies[tid]['completed'] = False
+                #sleep(HABITICA_REQUEST_WAIT_TIME)
+            show_delta(hbt, before_user, hbt.user())
+
         print_task_list(dailies)
 
-    # GET tasks:todo (v3 get ok)
+    # handle todo items (v3 ok)
     elif args['<command>'] == 'todos':
         todos = [e for e in hbt.tasks.user(type='todos')
                  if not e['completed']]
         if 'done' in args['<args>']:
+            before_user = hbt.user()
             tids = get_task_ids(args['<args>'][1:])
             for tid in tids:
-                hbt.user.tasks(_one=todos[tid]['id'],
-                               _two='up', _method='post')
+                todo = api.Habitica(auth=auth, resource="tasks", aspect=todos[tid]['id'])
+                todo(_method='post', _one='score', _two='up')
                 print('marked todo \'%s\' complete'
                       % todos[tid]['text'].encode('utf8'))
-                sleep(HABITICA_REQUEST_WAIT_TIME)
+                #sleep(HABITICA_REQUEST_WAIT_TIME)
             todos = updated_task_list(todos, tids)
+            show_delta(hbt, before_user, hbt.user())
+        elif 'get' in args['<args>']:
+            tids = get_task_ids(args['<args>'][1:])
+            for tid in tids:
+                todo = api.Habitica(auth=auth, resource="tasks", aspect=todos[tid]['id'])
+                obj = todo(_method='get')
+                print(json.dumps({'todo':obj}, indent=4, sort_keys=True))
         elif 'add' in args['<args>']:
             ttext = ' '.join(args['<args>'][1:])
-            hbt.user.tasks(type='todo',
+            hbt.tasks.user(type='todo',
                            text=ttext,
                            priority=PRIORITY[args['--difficulty']],
                            _method='post')
