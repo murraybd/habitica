@@ -359,6 +359,12 @@ def do_item_enumerate(user, requested, ordered=False):
         for item in results:
             print('%s: %d' % (item, results[item]))
 
+def get_members(auth, party):
+    members = []
+    for i in party['quest']['members']:
+        members.append(api.Habitica(auth=auth, resource="members", aspect=i)())
+    return members
+
 def stat_down(hbt, user, stat, amount):
     stats = user.get('stats', [])
     stats = fix_max(hbt, stat, stats, stats, refresh=False)
@@ -370,20 +376,24 @@ def stat_down(hbt, user, stat, amount):
         return True
     return False
 
-def party_hp_down_ten(hbt, user, party=None):
+def party_hp_down_ten(auth, hbt, user, party=None, myself=False):
     down = False
     if party == None:
         party = hbt.groups.party()
-    for member in party['members']:
+    if not myself:
+        members = get_members(auth, party)
+    else:
+        members = [user]
+    for member in members:
         if stat_down(hbt, member, 'hp', 10):
             print("%s needs healing" % (member['profile']['name']))
             return
     print("Already in good health!")
     sys.exit(0)
 
-def hp_down_ten(hbt, user):
+def hp_down_ten(auth, hbt, user):
     # Do a party check, but just a party of myself.
-    party_hp_down_ten(hbt, user, party={'members': [user]})
+    party_hp_down_ten(hbt, user, myself=True)
 
 def cli():
     """Habitica command-line interface.
@@ -784,7 +794,7 @@ def cli():
                  }
 
         smart = {'heal': hp_down_ten,
-                 'heallAll': party_hp_down_ten,
+                 'healAll': party_hp_down_ten,
                 }
 
         if len(args['<args>']) == 0:
@@ -817,7 +827,7 @@ def cli():
 
         # Do some smart checks before casting?
         if precast != None:
-            precast(hbt, user)
+            precast(auth, hbt, user)
 
         # Report casting.
         msg = "Casting %s" % (spell)
@@ -920,7 +930,7 @@ def cli():
         sleeper = api.Habitica(auth=auth, resource="user", aspect="sleep")
         sleeper(_method='post')
 
-    # GET user status (v3 busted)
+    # GET user status (v3 ok)
     elif args['<command>'] == 'status':
 
         # gather status info
@@ -1026,8 +1036,10 @@ def cli():
                        egg_count, "" if egg_count == 1 else "s",
                        potion_count,  "" if potion_count == 1 else "s")
         mount = items.get('currentMount', '')
+
+        members = get_members(auth, party)
         member_health = ', '.join(['%s: %d' % (i['profile']['name'], i['stats']['hp'])
-                                   for i in party['members']
+                                   for i in members
                                    if i['profile']['name'] != user['profile']['name']])
         summary_items = ('health', 'xp', 'mana', 'currency', 'perishables',
                          'quest', 'pet', 'mount', 'party health')
