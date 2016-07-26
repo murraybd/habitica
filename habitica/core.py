@@ -338,7 +338,7 @@ def show_delta(hbt, before, after):
             print("%s now has %s" % (location, item))
 
 
-def do_item_enumerate(user, requested, ordered=False):
+def do_item_enumerate(user, requested, ordered=False, counted=True, pretty=True):
     items = user.get('items', [])
     if len(requested) == 0:
         for item in items:
@@ -347,17 +347,33 @@ def do_item_enumerate(user, requested, ordered=False):
 
     results = {}
     for name in requested:
-        for item in items.get(name, []):
+        available = items.get(name, [])
+        if len(available) == 0:
+            print("You don't have any %s!" % (name))
+            continue
+        for item in available:
             count = items[name][item]
+            if pretty:
+                result_name = nice_name(item)
+            else:
+                result_name = item
             if count:
-                results[nice_name(item)] = count
+                results[result_name] = count
 
-    if ordered:
-        for i, c in sorted(results.items(), key=itemgetter(1)):
-            print('%s: %d' % (i, c))
+    if counted:
+        if ordered:
+            for i, c in sorted(results.items(), key=itemgetter(1)):
+                print('%s: %d' % (i, c))
+        else:
+            for item in results:
+                print('%s: %d' % (item, results[item]))
     else:
-        for item in results:
-            print('%s: %d' % (item, results[item]))
+        if ordered:
+            for i, c in sorted(results.items(), key=itemgetter(0)):
+                print('%s' % (i))
+        else:
+            for item in results:
+                print('%s' % (item))
 
 def get_members(auth, party):
     members = []
