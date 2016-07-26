@@ -449,8 +449,12 @@ def cli():
     cast <spell> [<id>]        Cast <spell> (on task <id>)
     cast smart <spell> [<id>]  After smart-check, cast <spell> (on task <id>)
     gems                       Buy gems until you can't
-    walk                       Walk (equip) a random pet
-    ride                       Ride a random mount
+    walk                       List available pets to walk
+    walk <pet>                 Walk (equip) the <pet> pet
+    walk random                Walk (equip) a random pet
+    ride                       List available mounts
+    ride <mount>               Ride (equip) the <mount> mount
+    ride random                Ride (equip) a random mount
     equip <gear>               Equip a piece of gear
     sleep                      Rest in the inn
     arise                      Check out of the inn
