@@ -338,27 +338,72 @@ def show_delta(hbt, before, after):
             print("%s now has %s" % (location, item))
 
 
-def do_item_enumerate(user, requested, ordered=False, counted=True, pretty=True):
+def do_item_enumerate(user, requested, ordered=False, pretty=True):
+    counted = False
     items = user.get('items', [])
     if len(requested) == 0:
         for item in items:
+            # Attempt to figure out if this is a dict of dicts or not.
+            try:
+                if isinstance(items[item], dict):
+                    one = items[item].keys()[0]
+                    if isinstance(items[item][one], dict):
+                        for thing in items[item]:
+                            print('%s/%s' % (item, thing))
+                        continue
+            except:
+                pass
             print('%s' % (item))
         return
 
     results = {}
     for name in requested:
+        if '/' in name:
+            main, sub = name.split('/', 1)
+            items = items.get(main, {sub: []})
+            name = sub
+
         available = items.get(name, [])
+        #print(available)
         if len(available) == 0:
             print("You don't have any %s!" % (name))
             continue
-        for item in available:
-            count = items[name][item]
+        if isinstance(available, unicode):
+            # This is a singleton, so disable counting.
+            counted = False
             if pretty:
-                result_name = nice_name(item)
+                result_name = nice_name(available)
             else:
-                result_name = item
-            if count:
-                results[result_name] = count
+                result_name = available
+            results[result_name] = 1
+        elif isinstance(available, dict):
+            for item in available:
+                if pretty:
+                    result_name = nice_name(item)
+                else:
+                    result_name = item
+
+                if isinstance(items[name][item], bool):
+                    # If false, we may want to skip it...
+                    #continue
+                    value = True
+                elif isinstance(items[name][item], unicode):
+                    result_name += ": %s" % (items[name][item])
+                    value = True
+                elif isinstance(items[name][item], int):
+                    # This is an integer item, so count them.
+                    counted = True
+                    value = items[name][item]
+                else:
+                    # Include unknown type in results.
+                    result_name += " %s" % (str(type(items[name][item])))
+                    value = True
+
+                if value:
+                    results[result_name] = value
+        else:
+            print("Don't know how to show %s" % (str(type(available))))
+            sys.exit(1)
 
     if counted:
         if ordered:
@@ -901,7 +946,7 @@ def cli():
         animals = items[item_type]
 
         if len(args['<args>']) == 0:
-            do_item_enumerate(user, [item_type], ordered=True, counted=False, pretty=False)
+            do_item_enumerate(user, [item_type], ordered=True, pretty=False)
             return
 
         desired = "".join(args['<args>'])
