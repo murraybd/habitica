@@ -879,43 +879,45 @@ def cli():
         user = hbt.user()
         show_delta(hbt, before_user, user)
 
-    # Activate a random pet (v3 ok)
-    elif args['<command>'] == 'walk':
+    # Select a pet or mount (v3 ok)
+    elif args['<command>'] == 'ride' or args['<command>'] == 'walk':
+        if args['<command>'] == 'ride':
+            item_type = 'mounts'
+            current = 'currentMount'
+            name = 'mount'
+            verb = 'riding'
+        else:
+            item_type = 'pets'
+            current = 'currentPet'
+            name = 'pet'
+            verb = 'walking with'
+
         user = hbt.user()
         items = user.get('items', [])
-        walking = items.get('currentPet', '')
-        pets = items['pets']
-        if walking:
-            pets.pop(walking)
+        animals = items[item_type]
 
-        if len(pets) == 0:
-            print("You don't have any pets!")
-            sys.exit(1)
+        if len(args['<args>']) == 0:
+            do_item_enumerate(user, [item_type], ordered=True, counted=False, pretty=False)
+            return
 
-        choice = random.randrange(0, len(pets)-1)
-        chosen = pets.keys()[choice]
+        desired = "".join(args['<args>'])
+
+        if desired.startswith('rand'):
+            active = items.get(current, '')
+            if active and len(animals) > 1:
+                animals.pop(active)
+
+            choice = random.randrange(0, len(animals)-1)
+            chosen = animals.keys()[choice]
+        else:
+            if desired not in animals:
+                print("You don't have a '%s' %s!" % (desired, name))
+                sys.exit(1)
+            chosen = desired
+
         equiper = batch = api.Habitica(auth=auth, resource="user", aspect="equip")
-        equiper(_method='post', _one='pet', _two=chosen)
-        print("You are now walking with a %s" % nice_name(chosen))
-
-    # Ride a random mount (v3 ok)
-    elif args['<command>'] == 'ride':
-        user = hbt.user()
-        items = user.get('items', [])
-        riding = items.get('currentMount', '')
-        mounts = items['mounts']
-        if riding:
-            mounts.pop(riding)
-
-        if len(mounts) == 0:
-            print("You don't have any mounts!")
-            sys.exit(1)
-
-        choice = random.randrange(0, len(mounts)-1)
-        chosen = mounts.keys()[choice]
-        equiper = batch = api.Habitica(auth=auth, resource="user", aspect="equip")
-        equiper(_method='post', _one='mount', _two=chosen)
-        print("You are now riding a %s" % nice_name(chosen))
+        equiper(_method='post', _one=name, _two=chosen)
+        print("You are now %s a %s" % (verb, nice_name(chosen)))
 
     # equip a set of equipment (v3 ok)
     elif args['<command>'] == 'equip':
