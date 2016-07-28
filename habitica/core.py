@@ -1024,12 +1024,15 @@ def cli():
             party = hbt.groups.party()
 
             if party['quest']['active'] == True:
-                print("Quest already started!")
+                if 'verbose' in args['<args>']:
+                    print("Quest already started!")
             elif party['quest']['members'][user['id']] != True:
                 accepter = api.Habitica(auth=auth, resource="groups", aspect=party['id'])
                 accepter(_method='post', _one='quests', _two='accept')
+                print(get_quest_info(cache, hbt, user=user, party=party))
             else:
-                print("Already accepted the quest!")
+                if 'verbose' in args['<args>']:
+                    print("Already accepted the quest!")
         else:
             print("Unknown quest argument '%s'" % (" ".join(args['<args>'])))
             sys.exit(1)
