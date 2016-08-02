@@ -1026,6 +1026,9 @@ def cli():
             if party['quest']['active'] == True:
                 if 'verbose' in args['<args>']:
                     print("Quest already started!")
+            elif len(party['quest']['members']) == 0:
+                if 'verbose' in args['<args>']:
+                    print("No quest proposed!")
             elif party['quest']['members'][user['id']] != True:
                 accepter = api.Habitica(auth=auth, resource="groups", aspect=party['id'])
                 accepter(_method='post', _one='quests', _two='accept')
