@@ -450,7 +450,7 @@ def party_hp_down_ten(auth, hbt, user, party=None, myself=False):
             print("%s needs healing" % (member['profile']['name']))
             return
     print("Already in good health!")
-    sys.exit(0)
+    sys.exit(1)
 
 def hp_down_ten(auth, hbt, user):
     # Do a party check, but just a party of myself.
