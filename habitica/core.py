@@ -421,10 +421,13 @@ def do_item_enumerate(user, requested, ordered=False, pretty=True):
                 print('%s' % (item))
 
 def get_members(auth, party):
-    members = []
-    for i in party['quest']['members']:
-        members.append(api.Habitica(auth=auth, resource="members", aspect=i)())
-    return members
+    result = []
+    group = api.Habitica(auth=auth, resource="groups", aspect=party['id'])
+    members = group(_one='members')
+    for i in members:
+        member = api.Habitica(auth=auth, resource="members", aspect=i['id'])()
+        result.append(member)
+    return result
 
 def stat_down(hbt, user, stat, amount):
     stats = user.get('stats', [])
@@ -438,6 +441,7 @@ def stat_down(hbt, user, stat, amount):
     return False
 
 def party_hp_down_ten(auth, hbt, user, party=None, myself=False):
+    needs_healing = False
     down = False
     if party == None:
         party = hbt.groups.party()
@@ -448,7 +452,10 @@ def party_hp_down_ten(auth, hbt, user, party=None, myself=False):
     for member in members:
         if stat_down(hbt, member, 'hp', 10):
             print("%s needs healing" % (member['profile']['name']))
-            return
+            needs_healing = True
+    if needs_healing:
+        return
+
     print("Already in good health!")
     sys.exit(1)
 
@@ -915,7 +922,9 @@ def cli():
     elif args['<command>'] == 'dump':
         user = hbt.user()
         party = hbt.groups.party()
-        print(json.dumps({'user':user, 'party':party},
+        group = api.Habitica(auth=auth, resource="groups", aspect=party['id'])
+        members = group(_one='members')
+        print(json.dumps({'user':user, 'party':party, 'members':members},
               indent=4, sort_keys=True))
 
     # cast/skill on task/self/party (v3 ok)
