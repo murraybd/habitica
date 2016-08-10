@@ -921,12 +921,41 @@ def cli():
 
     # dump raw json for user (v3 ok)
     elif args['<command>'] == 'dump':
-        user = hbt.user()
-        party = hbt.groups.party()
-        group = api.Habitica(auth=auth, resource="groups", aspect=party['id'])
-        members = group(_one='members')
-        print(json.dumps({'user':user, 'party':party, 'members':members},
-              indent=4, sort_keys=True))
+        user = None
+        party = None
+        items = None
+        report = {}
+        wanted = args['<args>']
+        if len(wanted) == 0:
+            wanted = ['user', 'party', 'members']
+
+        # Fetch stuff we need for multiple targets.
+        if 'user' in wanted or 'food' in wanted or 'pets' in wanted or 'mounts' in wanted:
+            user = hbt.user()
+        if 'food' in wanted or 'pets' in wanted or 'mounts' in wanted:
+            items = user.get('items', [])
+        if 'party' in wanted or 'members' in wanted:
+            party = hbt.groups.party()
+
+        # Add report details.
+        if 'user' in wanted:
+            report['user'] = user
+        if 'party' in wanted:
+            report['party'] = party
+        if 'members' in wanted:
+            group = api.Habitica(auth=auth, resource="groups", aspect=party['id'])
+            report['members'] = group(_one='members')
+        if 'food' in wanted:
+            report['food'] = items['food']
+        if 'pets' in wanted:
+            report['pets'] = items['pets']
+        if 'mounts' in wanted:
+            report['mounts'] = items['mounts']
+        if 'content' in wanted:
+            report['content'] = hbt.content()
+
+        # Dump the report.
+        print(json.dumps(report, indent=4, sort_keys=True))
 
     # cast/skill on task/self/party (v3 ok)
     elif args['<command>'] == 'cast':
