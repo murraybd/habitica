@@ -681,7 +681,8 @@ def cli():
 
             magic_pets = []
             for pet in pets:
-                if pet.split('-')[1] in ['Spooky', 'Peppermint', 'Floral']:
+                if pet.split('-')[1] in ['Spooky', 'Peppermint', 'Floral',
+                        'Thunderstorm']:
                     magic_pets.append(pet)
 
             for food in foods:
