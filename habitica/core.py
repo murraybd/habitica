@@ -185,6 +185,8 @@ def get_task_ids(tids):
 
 
 def nice_name(thing):
+    if '_' in thing:
+        thing = thing.replace('_', '-')
     prettied = " ".join(thing.split('-')[::-1])
     # split camel cased words
     matches = finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)',
