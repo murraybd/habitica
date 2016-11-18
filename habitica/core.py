@@ -751,8 +751,7 @@ def cli():
                     break
 
         for food in list(attempted_foods - fed_foods):
-            print("Nobody wants to eat a %s" % nice_name(food))
-
+            print("Nobody wants to eat %i %s" % (items['food'][food], nice_name(food)))
 
     # Hatch all possible eggs (v3 ok)
     elif args['<command>'] == 'hatch':
