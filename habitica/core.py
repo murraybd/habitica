@@ -325,6 +325,13 @@ def show_delta(hbt, before, after):
         if bpets.get(pet, 0) <= 0 and apets[pet] > 0:
             print("Hatched %s" % (nice_name(pet)))
 
+    # Food
+    afood = aitems['food']
+    bfood = bitems['food']
+    for food in afood:
+        if afood.get(food, 0) > bfood.get(food, 0):
+            print("Received %s" % (nice_name(food)))
+
     # Mounts
     amounts = aitems['mounts']
     bmounts = bitems['mounts']
@@ -588,6 +595,7 @@ def cli():
     cast <spell> [<id>]        Cast <spell> (on task <id>)
     cast smart <spell> [<id>]  After smart-check, cast <spell> (on task <id>)
     gems                       Buy gems until you can't
+    armoire                    Buy something from the armoire
     walk                       List available pets to walk
     walk <pet>                 Walk (equip) the <pet> pet
     walk random                Walk (equip) a random pet
@@ -1052,6 +1060,15 @@ def cli():
         purchaser = api.Habitica(auth=auth, resource="user", aspect="purchase")
         for i in range(gems):
             purchaser(_method='post', _one='gems', _two='gem')
+        user = hbt.user()
+        show_delta(hbt, before_user, user)
+
+    elif args['<command>'] == 'armoire':
+        user = hbt.user()
+        before_user = user
+        purchase = api.Habitica(auth=auth, resource="user",
+                                aspect="buy-armoire")
+        purchase(_method='post')
         user = hbt.user()
         show_delta(hbt, before_user, user)
 
