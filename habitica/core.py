@@ -676,20 +676,6 @@ def cli():
 
     # Feed all possible animals (v3 ok)
     elif args['<command>'] == 'feed':
-        feeding = {
-                    'Saddle':           'ignore',
-                    'Meat':             'Base',
-                    'CottonCandyBlue':  'CottonCandyBlue',
-                    'CottonCandyPink':  'CottonCandyPink',
-                    'Honey':            'Golden',
-                    'Milk':             'White',
-                    'Strawberry':       'Red',
-                    'Chocolate':        'Shade',
-                    'Fish':             'Skeleton',
-                    'Potatoe':          'Desert',
-                    'RottenMeat':       'Zombie',
-                  }
-
         user = hbt.user()
         refreshed = True
 
@@ -713,15 +699,15 @@ def cli():
                 # Handle seasonal foods that encode matching pet in name.
                 if '_' in food:
                     best = food.split('_',1)[1]
-                    if not food in feeding:
-                        feeding[food] = best
+                    if not food in FOOD_MAP:
+                        FOOD_MAP[food] = best
 
                 # Skip foods we don't have any of.
                 if items['food'][food] <= 0:
                     continue
 
                 # Find best pet to feed to.
-                suffix = feeding.get(food, None)
+                suffix = FOOD_MAP.get(food, None)
                 if suffix == None:
                     print("Unknown food: %s" % (food))
                     continue
