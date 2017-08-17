@@ -51,6 +51,20 @@ SETTINGS_CONF = os.path.expanduser('~') + '/.config/habitica/settings.cfg'
 SECTION_HABITICA = 'Habitica'
 SECTION_CACHE_QUEST = 'Quest'
 
+FOOD_MAP = {
+    'Saddle':           'ignore',
+    'Meat':             'Base',
+    'CottonCandyBlue':  'CottonCandyBlue',
+    'CottonCandyPink':  'CottonCandyPink',
+    'Honey':            'Golden',
+    'Milk':             'White',
+    'Strawberry':       'Red',
+    'Chocolate':        'Shade',
+    'Fish':             'Skeleton',
+    'Potatoe':          'Desert',
+    'RottenMeat':       'Zombie',
+}
+
 def load_typo_check(config, defaults, section, configfile):
     for item in config.options(section):
         if item not in defaults:
@@ -662,20 +676,6 @@ def cli():
 
     # Feed all possible animals (v3 ok)
     elif args['<command>'] == 'feed':
-        feeding = {
-                    'Saddle':           'ignore',
-                    'Meat':             'Base',
-                    'CottonCandyBlue':  'CottonCandyBlue',
-                    'CottonCandyPink':  'CottonCandyPink',
-                    'Honey':            'Golden',
-                    'Milk':             'White',
-                    'Strawberry':       'Red',
-                    'Chocolate':        'Shade',
-                    'Fish':             'Skeleton',
-                    'Potatoe':          'Desert',
-                    'RottenMeat':       'Zombie',
-                  }
-
         user = hbt.user()
         refreshed = True
 
@@ -699,15 +699,15 @@ def cli():
                 # Handle seasonal foods that encode matching pet in name.
                 if '_' in food:
                     best = food.split('_',1)[1]
-                    if not food in feeding:
-                        feeding[food] = best
+                    if not food in FOOD_MAP:
+                        FOOD_MAP[food] = best
 
                 # Skip foods we don't have any of.
                 if items['food'][food] <= 0:
                     continue
 
                 # Find best pet to feed to.
-                suffix = feeding.get(food, None)
+                suffix = FOOD_MAP.get(food, None)
                 if suffix == None:
                     print("Unknown food: %s" % (food))
                     continue
@@ -763,25 +763,36 @@ def cli():
 
     # Hatch all possible eggs (v3 ok)
     elif args['<command>'] == 'hatch':
+        def no_zero_count(types):
+            # don't include varieties of which we have 0
+            result = {}
+            for variety in types:
+                if types[variety] != 0:
+                    result[variety] = types[variety]
+            return result
         def hatch_refresh(user):
             items = user.get('items', [])
             pets = items['pets']
             mounts = items['mounts']
-            eggs = items['eggs']
-            potions = items['hatchingPotions']
-            return (items, pets, mounts, eggs, potions)
+            eggs = no_zero_count(items['eggs'])
+            potions = no_zero_count(items['hatchingPotions'])
+            foods = no_zero_count(items['food'])
+            return (items, pets, mounts, eggs, potions, foods)
 
         user = hbt.user()
         refreshed = True
 
         while refreshed:
             refreshed = False
-            items, pets, mounts, eggs, potions = hatch_refresh(user)
+            items, pets, mounts, eggs, potions, foods = hatch_refresh(user)
 
             for egg in eggs:
-                # Skip eggs we don't have.
-                if eggs[egg] == 0:
-                    continue
+                # dictionary with info re what we want to hatch
+                # priority is the amount of food we have for the pet
+                # -1 indicates we already have a mount
+                #  0 is for pets for which we have no food
+                # {priority: (potion, egg)}
+                hatch = {}
 
                 creatures = []
                 for kind in kinds:
@@ -791,29 +802,49 @@ def cli():
                     # This pet is already hatched.
                     if pets.get(creature, 0) > 0:
                         continue
-
                     # We ran out of eggs.
-                    if eggs[egg] == 0:
+                    if eggs.get(egg, 0) == 0:
                         continue
 
                     potion = creature.split('-')[-1]
                     # Missing the potion needed for this creature.
-                    if potion not in potions or potions[potion] < 1:
+                    if potion not in potions:
                         print("Want to hatch a %s %s, but missing potion" %
                               (potion, egg))
                         continue
-
-                    print("Hatching a %s %s" % (nice_name(potion),
-                                                nice_name(egg)))
+                    # already have a mount for this so new pet won't consume
+                    # food
+                    if items['mounts'].get(creature, 0) == 1:
+                        hatch[-1] = (potion, egg)
+                        continue
+                    hungry_for= list(FOOD_MAP.keys())[list(FOOD_MAP.values()).index(potion)]
+                    if hungry_for not in foods:
+                        print("Want to hatch a %s %s, but have no food" %
+                              (potion, egg))
+                        hatch[0] = (potion, egg)
+                        continue
+                    stock = foods.get(hungry_for, 0)
+                    if stock not in hatch:
+                        hatch[stock] = (potion, egg)
+                if not hatch:
+                    continue
+                for priority in sorted(hatch.keys(), reverse=True):
+                    potion = hatch[priority][0]
+                    egg = hatch[priority][1]
+                    creature = '%s-%s' % (egg, potion)
+                    print("Hatching a %s %s" % \
+                          (nice_name(potion), nice_name(egg)))
                     before_user = user
                     hatcher = api.Habitica(auth=auth, resource="user", aspect="hatch")
                     hatcher(_method='post', _one=egg, _two=potion)
                     user = hbt.user()
                     show_delta(hbt, before_user, user)
                     refreshed = True
-                    items, pets, mounts, eggs, potions = hatch_refresh(user)
+                    items, pets, mounts, eggs, potions, foods = hatch_refresh(user)
                     if pets.get(creature, 0) != 5:
-                        raise ValueError("failed to hatch %s" % (creature))
+                        raise ValueError("Failed to hatch %s" % (creature))
+                    # we'll create a new priority matrix the next time around
+                    break
 
         # How many eggs do we need for the future?
         tosell = []
