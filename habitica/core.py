@@ -777,25 +777,20 @@ def cli():
 
     # Hatch all possible eggs (v3 ok)
     elif args['<command>'] == 'hatch':
+        def no_zero_count(types):
+            # don't include varieties of which we have 0
+            result = {}
+            for variety in types:
+                if types[variety] != 0:
+                    result[variety] = types[variety]
+            return result
         def hatch_refresh(user):
             items = user.get('items', [])
             pets = items['pets']
             mounts = items['mounts']
-            # don't include egg items with a count of 0
-            eggs = {}
-            for egg in items['eggs']:
-                if items['eggs'][egg] != 0:
-                    eggs[egg] = items['eggs'][egg]
-            # don't include potion items with a count of 0
-            potions = {}
-            for potion in items['hatchingPotions']:
-                if items['hatchingPotions'][potion] != 0:
-                    potions[potion] = items['hatchingPotions'][potion]
-            # don't include food items with a count of 0
-            foods = {}
-            for food in items['food']:
-                if items['food'][food] != 0:
-                    foods[food] = items['food'][food]
+            eggs = no_zero_count(items['eggs'])
+            potions = no_zero_count(items['hatchingPotions'])
+            foods = no_zero_count(items['food'])
             return (items, pets, mounts, eggs, potions, foods)
 
         user = hbt.user()
