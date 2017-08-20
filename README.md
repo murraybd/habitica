@@ -150,6 +150,8 @@ Via `habitica --help`:
 
         The habitica commands are:
           status                     Show HP, XP, GP, and more
+          status health              Show current health
+          status mana                Show current mana
           habits                     List habit tasks
           habits up <task-id>        Up (+) habit <task-id>
           habits down <task-id>      Down (-) habit <task-id>
