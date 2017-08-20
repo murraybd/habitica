@@ -1204,6 +1204,12 @@ def cli():
         user = hbt.user()
         party = hbt.groups.party()
         stats = user.get('stats', '')
+        if args['<args>'] == ['mana']:
+            print('%s' % int(stats['mp']))
+            sys.exit(0)
+        if args['<args>'] == ['health']:
+            print('%s' % int(stats['hp']))
+            sys.exit(0)
         items = user.get('items', '')
         sleeping = user['preferences']['sleep']
         food_count = sum(items['food'].values())
