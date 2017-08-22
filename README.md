@@ -149,18 +149,43 @@ Via `habitica --help`:
           --debug           Some all logging information
 
         The habitica commands are:
-          status                 Show HP, XP, GP, and more
-          habits                 List habit tasks
-          habits up <task-id>    Up (+) habit <task-id>
-          habits down <task-id>  Down (-) habit <task-id>
-          dailies                List daily tasks
-          dailies done           Mark daily <task-id> complete
-          dailies undo           Mark daily <task-id> incomplete
-          todos                  List todo tasks
-          todos done <task-id>   Mark one or more todo <task-id> completed
-          todos add <task>       Add todo with description <task>
-          server                 Show status of Habitica service
-          home                   Open tasks page in default browser
+          status                     Show HP, XP, GP, and more
+          status health              Show current health
+          status mana                Show current mana
+          habits                     List habit tasks
+          habits up <task-id>        Up (+) habit <task-id>
+          habits down <task-id>      Down (-) habit <task-id>
+          dailies                    List daily tasks
+          dailies done               Mark daily <task-id> complete
+          dailies undo               Mark daily <task-id> incomplete
+          todos                      List todo tasks
+          todos done <task-id>       Mark one or more todo <task-id> completed
+          todos add <task>           Add todo with description <task>
+          server                     Show status of Habitica service
+          home                       Open tasks page in default browser
+          item                       Show list of item types
+          item <type>                Show all items of given <type>
+          feed                       Feed all food to matching pets
+          hatch                      Use potions to hatch eggs, sell unneeded eggs
+          sell                       Show list of all potions
+          sell all [<max>]           Sell all hatching potions (up to <max> many)
+          sell <type> [<max>]        Sell all <type> hatching potions (up to <max>)
+          cast                       Show list of castable spells
+          cast <spell> [<id>]        Cast <spell> (on task <id>)
+          cast smart <spell> [<id>]  After smart-check, cast <spell> (on task <id>)
+          gems                       Buy gems until you can't
+          armoire                    Buy something from the armoire
+          walk                       List available pets to walk
+          walk <pet>                 Walk (equip) the <pet> pet
+          walk random                Walk (equip) a random pet
+          ride                       List available mounts
+          ride <mount>               Ride (equip) the <mount> mount
+          ride random                Ride (equip) a random mount
+          equip <gear>               Equip a piece of gear
+          sleep                      Rest in the inn
+          arise                      Check out of the inn
+          quest                      Report quest details
+
 
         For `habits up|down`, `dailies done|undo`, and `todos done`, you can pass
         one or more <task-id> parameters, using either comma-separated lists or

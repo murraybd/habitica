@@ -587,6 +587,8 @@ def cli():
 
   The habitica commands are:
     status                     Show HP, XP, GP, and more
+    status health              Show current health
+    status mana                Show current mana
     habits                     List habit tasks
     habits up <task-id>        Up (+) habit <task-id>
     habits down <task-id>      Down (-) habit <task-id>
@@ -1204,6 +1206,12 @@ def cli():
         user = hbt.user()
         party = hbt.groups.party()
         stats = user.get('stats', '')
+        if args['<args>'] == ['mana']:
+            print('%s' % int(stats['mp']))
+            sys.exit(0)
+        if args['<args>'] == ['health']:
+            print('%s' % int(stats['hp']))
+            sys.exit(0)
         items = user.get('items', '')
         sleeping = user['preferences']['sleep']
         food_count = sum(items['food'].values())
