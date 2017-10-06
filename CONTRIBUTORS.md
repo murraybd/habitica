@@ -4,3 +4,5 @@ Thank you! [Full list at /graphs/contributors](https://github.com/philadams/habi
 - [josephholsten](https://github.com/josephholsten)
 - [kurohai](https://github.com/kurohai)
 - [emacsen](https://github.com/emacsen)
+- [Brian Murray](https://github.com/murraybd)
+- [Kees Cook](https://github.com/kees)
