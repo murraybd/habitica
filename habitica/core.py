@@ -610,6 +610,7 @@ def cli():
     cast smart <spell> [<id>]  After smart-check, cast <spell> (on task <id>)
     gems                       Buy gems until you can't
     armoire                    Buy something from the armoire
+    buy-health                 Buy a health potion
     walk                       List available pets to walk
     walk <pet>                 Walk (equip) the <pet> pet
     walk random                Walk (equip) a random pet
@@ -1103,6 +1104,15 @@ def cli():
         user = hbt.user()
         show_delta(hbt, before_user, user)
 
+    elif args['<command>'] == 'buy-health':
+        user = hbt.user()
+        before_user = user
+        purchase = api.Habitica(auth=auth, resource="user",
+                                aspect="buy-health-potion")
+        purchase(_method='post')
+        user = hbt.user()
+        show_delta(hbt, before_user, user)
+
     # Quest manipulations
     elif args['<command>'] == 'quest':
         if len(args['<args>']) == 0:
@@ -1204,6 +1214,12 @@ def cli():
         user = hbt.user()
         party = hbt.groups.party()
         stats = user.get('stats', '')
+        if args['<args>'] == ['mana']:
+            print('%s' % int(stats['mp']))
+            sys.exit(0)
+        if args['<args>'] == ['health']:
+            print('%s' % int(stats['hp']))
+            sys.exit(0)
         items = user.get('items', '')
         sleeping = user['preferences']['sleep']
         food_count = sum(items['food'].values())
